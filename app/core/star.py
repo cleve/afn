@@ -13,9 +13,10 @@ class Star:
     def __init__(self, distance_matrix, constants):
         self.name = 'sun'
         self.constants = constants
+        self.utils = Utils()
 
         # Debug
-        self.DEBUG = False
+        self.DEBUG = True
 
         # Geometry.
         self.distances = distance_matrix
@@ -48,7 +49,8 @@ class Star:
                     if col_index_ii > current_length:
                         col_index_ii = current_length
                     sub_matrix = self.distances[row_index_ii:col_index_ii + 1, row_index_jj:col_index_jj + 1]
-                    average_distance = numpy.average(sub_matrix)
+                    average_distance = self.utils.matrix_avg(sub_matrix)
+                    
                     self.temperature_map[row_index_ii:col_index_ii + 1, row_index_jj:col_index_jj + 1] = average_distance
                     if self.DEBUG:
                         print('Average value: ', average_distance)
