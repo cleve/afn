@@ -2,7 +2,10 @@ import random
 
 class Utils:
     def get_randon_number(self):
-        return str(random.randint(0,10000))
+        return str(random.randint(0, 10000))
+
+    def get_randon_number_between(self, a, b):
+        return str(random.randint(a, b))
 
     def matrix_avg(self, matrix):
         sz_matrix = len(matrix)

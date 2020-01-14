@@ -12,6 +12,7 @@ class Star:
     """
     def __init__(self, distance_matrix, constants):
         self.name = 'sun'
+        self.track_fusion = []
         self.constants = constants
         self.utils = Utils()
 
@@ -57,14 +58,25 @@ class Star:
                         print('For sub-matrix: ')
                         print(sub_matrix)
 
-    def fusion(self):
+    def fusion(self, elem_0, elem_1):
         pass
 
     def ignition(self):
         candidates = []
         current_length = len(self.distances)
+        # Initial temperature map
         self.build_temperature_map(current_length)
-        # Select candidates to be fusioned.
+        # Start elements
         for ii in range(current_length):
+            temp_prob = 0
+            element_tuple = (0, 0)
             for jj in range(current_length):
-                pass
+                temperature = self.temperature_map[ii][jj]
+                distance = self.distances[ii][jj]
+                prob = temperature / distance if distance > 0 else 0
+                if prob > temp_prob:
+                    temp_prob = prob
+                    element_tuple = (ii, jj)
+            
+            print(temp_prob, element_tuple)
+                
