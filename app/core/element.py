@@ -1,8 +1,20 @@
-
 class Element:
-    def __init__(self):
-        self.name = 'H'
-        self.pos_x = 0
-        self.pos_y = 0
+    '''Element creation
 
-        self.composition = []
+        params:
+            - node_id: int
+    '''
+
+    def __init__(self, node_id, x, y, element_type=None):
+        self.nodes = []
+        self.x = x
+        self.y = y
+        self.node_id = node_id
+        self.type = element_type
+
+    def get_coordinates(self):
+        '''Get a tuple (x, y)
+        '''
+        if self.x == -1 or self.y == -1:
+            raise ('position can not be -1')
+        return (self.x, self.y)

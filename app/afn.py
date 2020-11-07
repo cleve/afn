@@ -4,9 +4,6 @@ from core.star import Star
 
 constants = Constants()
 reader = Reader('app/samples/dj38.tsp', constants)
-distance_matrix = reader.read_tsp()
-
+base_elements = reader.read_tsp()
 # TODO: A universe :)
-star = Star(distance_matrix, constants)
-star.ignition()
-
+star = Star(base_elements, constants)
