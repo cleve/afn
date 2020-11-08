@@ -10,14 +10,6 @@ class Reader:
         self.matrix = None
         self.coordinates = []
 
-    def get_distance(self, p_0, p_1):
-        """ p_0 is a tuple (x_0, y_0) and P_1 is a tuple (x_1, y_1)
-        """
-        distance = math.sqrt((p_1[0] - p_0[0])**2 + (p_1[1] - p_0[1])**2)
-        if self.constants.INTEGER:
-            return int(distance)
-        return distance
-
     def extract_components(self, line):
         """Return node number, x_coord, y_coord
         """
