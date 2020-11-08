@@ -40,14 +40,17 @@ class Helper:
         return list(candidates)
 
     @staticmethod
-    def get_temperature(near_elements):
-        pass
+    def get_temperature(near_elements, avg_distance, total_elements):
+        '''Temperature using density
+        '''
+        # Calcule of temperature
+        return total_elements*(100.0/avg_distance)/len(near_elements)
 
     @staticmethod
     def select_candidates(elements):
         """Search several options for fusion
         selecting 10% of the elements
-            return [list], avg_distance
+            return [list], element, avg_distance
         """
         random_element = numpy.random.choice(elements)
         avg_distances = 0
@@ -61,11 +64,12 @@ class Helper:
                 continue
             avg_distances += distance
             distances.append([distance, element])
-        index = int(0.1 * len(elements))
+        index = random.randint(int(0.1 * len(elements)),
+                               int(len(elements) / 2))
         avg_distances = avg_distances/(len(elements) - 1)
-        return sorted(distances, key=itemgetter(0))[:index], avg_distances
+        return sorted(distances, key=itemgetter(0))[:index], random_element, avg_distances
 
-    @staticmethod
+    @ staticmethod
     def get_distance(p_0, p_1):
         """ p_0 is a tuple (x_0, y_0) and P_1 is a tuple (x_1, y_1)
         """
