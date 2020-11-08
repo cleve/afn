@@ -2,6 +2,7 @@ import numpy
 import sys
 from core.element import Element
 from utils.constants import ElementType
+from utils.helper import Helper
 numpy.set_printoptions(threshold=sys.maxsize)
 
 
@@ -21,9 +22,24 @@ class Star:
         self.constants = constants
         self.ignition(base_elements)
 
-    def fusion(self, elem_0, elem_1):
-        '''Main process
+    def life(self):
+        '''Star life
         '''
+        while 1:
+            # select an element to fusion it
+            element_type_candidate = Helper.get_randon_element()
+            search_elements = Helper.get_candidates(
+                self.elements, element_type_candidate)
+            if len(search_elements) == 0:
+                continue
+            fusion_candidates = Helper.select_candidates(search_elements)
+            print(fusion_candidates)
+            break
+
+    def fusion(self, elem_0, elem_1):
+        '''Fusion two elements
+        '''
+        pass
 
     def ignition(self, base_elements):
         '''Element creation
