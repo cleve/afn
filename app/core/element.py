@@ -15,6 +15,7 @@ class Element:
     def get_coordinates(self):
         '''Get a tuple (x, y)
         '''
-        if self.x == -1 or self.y == -1:
-            raise ('position can not be -1')
         return (self.x, self.y)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '-' + str(self.type)
