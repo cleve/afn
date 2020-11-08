@@ -1,6 +1,10 @@
-# afn
+# AFN
 Approach to solve TSP problem
 
 # Requirements
 
-numpy
+* numpy
+
+# Use
+cd app
+python3 afn.py
