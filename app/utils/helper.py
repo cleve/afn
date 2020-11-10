@@ -38,7 +38,6 @@ class Helper:
     def get_candidates(elements, filter_type):
         '''Candidates using filter element
         '''
-        print(filter_type)
         candidates = filter(lambda element: element.type ==
                             filter_type, elements)
         return list(candidates)
@@ -75,7 +74,7 @@ class Helper:
         index = random.randint(int(0.1 * len(elements)),
                                int(len(elements) / 2))
         avg_distances = avg_distances/(len(elements) - 1)
-        return sorted(distances, key=itemgetter(0))[:index], random_element, avg_distances
+        return sorted(distances, key=itemgetter(0))[:index if index > 0 else len(distances)], random_element, avg_distances
 
     @ staticmethod
     def get_distance(p_0, p_1):

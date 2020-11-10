@@ -6,5 +6,8 @@ Approach to solve TSP problem
 * numpy
 
 # Use
+
+```sh
 cd app
 python3 afn.py
+```
