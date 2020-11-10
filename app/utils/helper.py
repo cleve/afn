@@ -8,6 +8,10 @@ class Helper:
     '''Utilities static methods
     '''
     @staticmethod
+    def random_list_element(elements):
+        return random.choice(elements)
+
+    @staticmethod
     def get_randon_element():
         '''Select uniform element
         '''
@@ -43,8 +47,12 @@ class Helper:
     def get_temperature(near_elements, avg_distance, total_elements):
         '''Temperature using density
         '''
+        portion_dist = 0
+        for element in near_elements:
+            portion_dist += element[0]
+        portion_dist = portion_dist/len(near_elements)
         # Calcule of temperature
-        return total_elements*(100.0/avg_distance)/len(near_elements)
+        return (total_elements*(100.0*portion_dist/avg_distance))/len(near_elements)
 
     @staticmethod
     def select_candidates(elements):
@@ -75,3 +83,9 @@ class Helper:
         """
         distance = numpy.sqrt((p_1[0] - p_0[0])**2 + (p_1[1] - p_0[1])**2)
         return distance
+
+    @ staticmethod
+    def get_mid_point(p_0, p_1):
+        """ p_0 is a tuple (x_0, y_0) and P_1 is a tuple (x_1, y_1)
+        """
+        return ((p_0.x + p_1.x) / 2, (p_0.y + p_1.y) / 2)

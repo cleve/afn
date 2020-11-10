@@ -33,7 +33,6 @@ class Star:
             if len(search_elements) == 0:
                 continue
             fusion_candidates = Helper.select_candidates(search_elements)
-            print(fusion_candidates)
             self.start_fusion(fusion_candidates)
             break
 
@@ -42,12 +41,21 @@ class Star:
         '''
         temperature = Helper.get_temperature(
             fusion_candidates[0], fusion_candidates[2], len(self.elements))
-        print('>>', temperature)
+        if temperature > 100:
+            final_candidate = Helper.random_list_element(fusion_candidates[0])
+            self.fusion(fusion_candidates[1], final_candidate[1])
 
     def fusion(self, elem_0, elem_1):
         '''Fusion two elements
         '''
-        pass
+        mid_point = Helper.get_mid_point(elem_0, elem_1)
+        if elem_0.type == ElementType.HIDROGEN:
+            new_type = ElementType.HELIUM
+        elif elem_0.type == ElementType.HELIUM:
+            new_type = ElementType.CARBON
+        new_element = Element(
+            1, mid_point[0], mid_point[1], new_type)
+        print(new_element)
 
     def ignition(self, base_elements):
         '''Element creation
