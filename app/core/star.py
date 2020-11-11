@@ -35,7 +35,6 @@ class Star:
             fusion_candidates = Helper.select_candidates(search_elements)
             self.start_fusion(fusion_candidates)
             if len(self.elements) == 2:
-                print('supernova')
                 break
 
     def start_fusion(self, fusion_candidates):
@@ -43,7 +42,7 @@ class Star:
         '''
         temperature = Helper.get_temperature(
             fusion_candidates[0], fusion_candidates[2], len(self.elements))
-        if temperature > 100:
+        if temperature > 170 and Helper.get_randon_number_between(0, 1, True) > 0.5:
             final_candidate = Helper.random_list_element(fusion_candidates[0])
             self.fusion(fusion_candidates[1], final_candidate[1])
 
@@ -54,7 +53,7 @@ class Star:
             return ElementType.HELIUM
         elif element_type == ElementType.HELIUM:
             return ElementType.CARBON
-        return ElementType.HIDROGEN
+        return ElementType.CARBON
 
     def fusion(self, elem_0, elem_1):
         '''Fusion two elements
@@ -63,6 +62,10 @@ class Star:
         new_element_type = self.get_next_element_type(elem_0.type)
         new_element = Element(
             1, mid_point[0], mid_point[1], new_element_type)
+        # Id for the new element
+        new_element.node_id = str(id(new_element))
+        # Tracking elements
+        new_element.nodes = [elem_0, elem_1]
         new_elements = set(self.elements)
         # Elements to remove
         fusioned = {elem_0, elem_1}

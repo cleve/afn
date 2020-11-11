@@ -2,13 +2,44 @@ import random
 import numpy
 from operator import itemgetter
 from utils.constants import ElementType
+from core.element import Element
 
 
 class Helper:
     '''Utilities static methods
     '''
     @staticmethod
+    def path_size(str_elements, distance_matrix):
+        '''Size
+        '''
+        pos_array = str_elements.split(',')[:-1]
+        path_index = [int(float(elem)) - 1 for elem in pos_array]
+        total = 0.0
+        for index in range(len(path_index)):
+            if index == len(path_index) - 1:
+                return total
+            total += distance_matrix[path_index[index]][path_index[index + 1]]
+
+    @staticmethod
+    def fision(elements):
+        '''Unpack elements
+        '''
+        chain = ''
+        if isinstance(elements, Element):
+            if elements.type == ElementType.HIDROGEN:
+                chain += str(int(elements.node_id)) + ','
+                return chain
+
+            chain += Helper.fision(elements.nodes)
+        else:
+            for element in elements:
+                chain += Helper.fision(element)
+        return chain
+
+    @staticmethod
     def random_list_element(elements):
+        '''Simple choice
+        '''
         return random.choice(elements)
 
     @staticmethod
@@ -29,9 +60,11 @@ class Helper:
         return str(random.randint(0, 10000))
 
     @staticmethod
-    def get_randon_number_between(min_border, max_border):
+    def get_randon_number_between(min_border, max_border, is_number=False):
         '''Integer random (a, b)
         '''
+        if is_number:
+            return random.randint(min_border, max_border)
         return str(random.randint(min_border, max_border))
 
     @staticmethod

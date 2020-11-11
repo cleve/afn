@@ -1,5 +1,5 @@
-import math
 import numpy
+from utils.helper import Helper
 
 
 class Reader:
@@ -16,6 +16,19 @@ class Reader:
         raw_values = line.split(' ')
         return (float(raw_values[0]), float(raw_values[1]), float(raw_values[2]))
 
+    def build_distance_matrix(self):
+        if len(self.coordinates) == 0:
+            return None
+        coord_len = len(self.coordinates)
+        # Zero matrix.
+        self.matrix = numpy.zeros((coord_len, coord_len), dtype=float)
+        for ii in range(coord_len):
+            for jj in range(coord_len):
+                self.matrix[ii][jj] = Helper.get_distance(
+                    self.coordinates[ii], self.coordinates[jj])
+
+        return self.matrix
+
     def read_tsp(self):
         '''Get coordinates
         return [node_number, x, y]
@@ -31,6 +44,9 @@ class Reader:
                 if not self.start_parsing:
                     continue
                 numbers = self.extract_components(line)
+                self.coordinates.append(
+                    [numbers[1], numbers[2]]
+                )
                 coordinates.append(
                     [numbers[0], numbers[1], numbers[2]]
                 )
