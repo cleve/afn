@@ -10,7 +10,7 @@ def main():
     base_elements = reader.read_tsp()
     minimal = None
     min_elements = None
-    for i in range(1000):
+    for _i in range(500):
         star = Star(base_elements, constants)
         star.life()
         elements = Helper.fision(star.elements)

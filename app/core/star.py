@@ -1,9 +1,6 @@
-import numpy
-import sys
 from core.element import Element
 from utils.constants import ElementType
 from utils.helper import Helper
-numpy.set_printoptions(threshold=sys.maxsize)
 
 
 class Star:
@@ -30,6 +27,7 @@ class Star:
             element_type_candidate = Helper.get_randon_element()
             search_elements = Helper.get_candidates(
                 self.elements, element_type_candidate)
+            # We need at least two elements to fusion it
             if len(search_elements) < 2:
                 continue
             fusion_candidates = Helper.select_candidates(search_elements)

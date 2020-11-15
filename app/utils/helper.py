@@ -92,22 +92,30 @@ class Helper:
         selecting 10% of the elements
             return [list], element, avg_distance
         """
-        random_element = numpy.random.choice(elements)
+        element_set = set(elements)
+        random_element = element_set.pop()
         avg_distances = 0
+        sum_distance = 0
         distances = []
-        for element in elements:
+        selected_elements = []
+        selection = Helper.get_randon_number_between(
+            2, len(elements), is_number=True)
+        for _iteration in range(selection):
+            if len(element_set) == 0:
+                break
+            selected_elements.append(element_set.pop())
+        for element in selected_elements:
             distance = Helper.get_distance(
                 (random_element.x, random_element.y),
                 (element.x, element.y)
             )
+            # Ignore self element
             if distance == 0:
                 continue
-            avg_distances += distance
+            sum_distance += distance
             distances.append([distance, element])
-        index = random.randint(int(0.1 * len(elements)),
-                               int(len(elements) / 2))
-        avg_distances = avg_distances/(len(elements) - 1)
-        return sorted(distances, key=itemgetter(0))[:index if index > 0 else len(distances)], random_element, avg_distances
+        avg_distances = sum_distance / len(elements)
+        return distances, random_element, avg_distances
 
     @ staticmethod
     def get_distance(p_0, p_1):
