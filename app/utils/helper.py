@@ -1,5 +1,6 @@
+from enum import Enum
 import random
-import numpy
+from math import sqrt
 from operator import itemgetter
 from utils.constants import ElementType
 from core.element import Element
@@ -26,7 +27,7 @@ class Helper:
         '''
         chain = ''
         if isinstance(elements, Element):
-            if elements.type == ElementType.HIDROGEN:
+            if elements.element_type == ElementType.HIDROGEN:
                 chain += str(int(elements.node_id)) + ','
                 return chain
 
@@ -46,12 +47,10 @@ class Helper:
     def get_randon_element():
         '''Select uniform element
         '''
-        elem_candidates = [
+        return random.choice([
             ElementType.HIDROGEN,
             ElementType.HELIUM,
-            ElementType.CARBON
-        ]
-        return numpy.random.choice(elem_candidates)
+            ElementType.CARBON])
 
     @staticmethod
     def get_randon_number():
@@ -68,11 +67,11 @@ class Helper:
         return str(random.randint(min_border, max_border))
 
     @staticmethod
-    def get_candidates(elements, filter_type):
+    def get_candidates(elements: list, filter_type: Enum) -> list:
         '''Candidates using filter element
         '''
-        candidates = filter(lambda element: element.type ==
-                            filter_type, elements)
+        candidates = filter(
+            lambda element: element.element_type == filter_type, elements)
         return list(candidates)
 
     @staticmethod
@@ -121,7 +120,7 @@ class Helper:
     def get_distance(p_0, p_1):
         """ p_0 is a tuple (x_0, y_0) and P_1 is a tuple (x_1, y_1)
         """
-        distance = numpy.sqrt((p_1[0] - p_0[0])**2 + (p_1[1] - p_0[1])**2)
+        distance = sqrt((p_1[0] - p_0[0])**2 + (p_1[1] - p_0[1])**2)
         return distance
 
     @ staticmethod

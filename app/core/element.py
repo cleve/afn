@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+
 class Element:
     '''Element creation
 
@@ -10,7 +13,7 @@ class Element:
         self.x = x
         self.y = y
         self.node_id = node_id
-        self.type = element_type
+        self.element_type = element_type
 
     def get_coordinates(self):
         '''Get a tuple (x, y)

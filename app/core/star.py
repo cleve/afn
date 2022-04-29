@@ -11,14 +11,24 @@ class Star:
     """
 
     def __init__(self, base_elements, constants):
+        """Star init
+
+        Args:
+            base_elements (list): [node_number, x, y]
+            constants (Constant): class
+        """
         # Debug
         self.DEBUG = True
         self.name = 'sun'
         self.track_fusion = []
-        self.elements = []
+        self._elements = []
         self.constants = constants
         self.ignition(base_elements)
 
+    @property
+    def elements(self):
+        return self._elements
+    
     def life(self):
         '''Star life
         '''
@@ -26,20 +36,20 @@ class Star:
             # select an element to fusion it
             element_type_candidate = Helper.get_randon_element()
             search_elements = Helper.get_candidates(
-                self.elements, element_type_candidate)
+                self._elements, element_type_candidate)
             # We need at least two elements to fusion it
             if len(search_elements) < 2:
                 continue
             fusion_candidates = Helper.select_candidates(search_elements)
             self.start_fusion(fusion_candidates)
-            if len(self.elements) == 2:
+            if len(self._elements) == 2:
                 break
 
     def start_fusion(self, fusion_candidates):
         '''Select the elements using temperature and distance
         '''
         temperature = Helper.get_temperature(
-            fusion_candidates[0], fusion_candidates[2], len(self.elements))
+            fusion_candidates[0], fusion_candidates[2], len(self._elements))
         if temperature > 170 and Helper.get_randon_number_between(0, 1, True) > 0.5:
             final_candidate = Helper.random_list_element(fusion_candidates[0])
             self.fusion(fusion_candidates[1], final_candidate[1])
@@ -57,29 +67,29 @@ class Star:
         '''Fusion two elements
         '''
         mid_point = Helper.get_mid_point(elem_0, elem_1)
-        new_element_type = self.get_next_element_type(elem_0.type)
+        new_element_type = self.get_next_element_type(elem_0.element_type)
         new_element = Element(
             1, mid_point[0], mid_point[1], new_element_type)
         # Id for the new element
         new_element.node_id = str(id(new_element))
         # Tracking elements
         new_element.nodes = [elem_0, elem_1]
-        new_elements = set(self.elements)
+        new_elements = set(self._elements)
         # Elements to remove
         fusioned = {elem_0, elem_1}
-        self.elements = list(new_elements - fusioned)
-        self.elements.append(new_element)
+        self._elements = list(new_elements - fusioned)
+        self._elements.append(new_element)
 
     def ignition(self, base_elements):
-        '''Element creation
+        '''Elements creation, at the begining every element
+        is hidrogen.
         '''
-        element = ElementType.HIDROGEN
         for item in base_elements:
-            self.elements.append(
+            self._elements.append(
                 Element(
                     item[0],
                     item[1],
                     item[2],
-                    element
+                    ElementType.HIDROGEN
                 )
             )
