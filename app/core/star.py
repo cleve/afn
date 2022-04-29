@@ -23,7 +23,7 @@ class Star:
         self.track_fusion = []
         self._elements = []
         self.constants = constants
-        self.ignition(base_elements)
+        self._ignition(base_elements)
 
     @property
     def elements(self):
@@ -41,20 +41,20 @@ class Star:
             if len(search_elements) < 2:
                 continue
             fusion_candidates = Helper.select_candidates(search_elements)
-            self.start_fusion(fusion_candidates)
+            self._start_fusion(fusion_candidates)
             if len(self._elements) == 2:
                 break
 
-    def start_fusion(self, fusion_candidates):
+    def _start_fusion(self, fusion_candidates):
         '''Select the elements using temperature and distance
         '''
         temperature = Helper.get_temperature(
             fusion_candidates[0], fusion_candidates[2], len(self._elements))
         if temperature > 170 and Helper.get_randon_number_between(0, 1, True) > 0.5:
             final_candidate = Helper.random_list_element(fusion_candidates[0])
-            self.fusion(fusion_candidates[1], final_candidate[1])
+            self._fusion(fusion_candidates[1], final_candidate[1])
 
-    def get_next_element_type(self, element_type):
+    def _get_next_element_type(self, element_type):
         '''Get next type of element after fusion
         '''
         if element_type == ElementType.HIDROGEN:
@@ -63,11 +63,11 @@ class Star:
             return ElementType.CARBON
         return ElementType.CARBON
 
-    def fusion(self, elem_0, elem_1):
+    def _fusion(self, elem_0, elem_1):
         '''Fusion two elements
         '''
         mid_point = Helper.get_mid_point(elem_0, elem_1)
-        new_element_type = self.get_next_element_type(elem_0.element_type)
+        new_element_type = self._get_next_element_type(elem_0.element_type)
         new_element = Element(
             1, mid_point[0], mid_point[1], new_element_type)
         # Id for the new element
@@ -80,7 +80,7 @@ class Star:
         self._elements = list(new_elements - fusioned)
         self._elements.append(new_element)
 
-    def ignition(self, base_elements):
+    def _ignition(self, base_elements):
         '''Elements creation, at the begining every element
         is hidrogen.
         '''
