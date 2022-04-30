@@ -1,10 +1,6 @@
 # AFN
 Approach to solve TSP problem
 
-# Requirements
-
-* numpy
-
 # Use
 
 ```sh

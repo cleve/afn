@@ -1,4 +1,3 @@
-import numpy
 from utils.helper import Helper
 
 
@@ -21,7 +20,7 @@ class Reader:
             return None
         coord_len = len(self.coordinates)
         # Zero matrix.
-        self.matrix = numpy.zeros((coord_len, coord_len), dtype=float)
+        self.matrix = [ [ 0 for i in range(coord_len) ] for j in range(coord_len) ]
         for ii in range(coord_len):
             for jj in range(coord_len):
                 self.matrix[ii][jj] = Helper.get_distance(
