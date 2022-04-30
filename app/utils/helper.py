@@ -86,9 +86,8 @@ class Helper:
         return (total_elements*(100.0*portion_dist/avg_distance))/len(near_elements)
 
     @staticmethod
-    def select_candidates(elements):
+    def select_candidates(elements: list):
         """Search several options for fusion
-        selecting 10% of the elements
             return [list], element, avg_distance
         """
         avg_distances = 0
@@ -119,6 +118,7 @@ class Helper:
             if distance == 0:
                 continue
             sum_distance += distance
+            # TODO: Fix here, not ordering
             distances.append([distance, element])
         avg_distances = sum_distance / len(elements)
         return distances, random_element, avg_distances
