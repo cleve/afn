@@ -4,6 +4,14 @@ from math import sqrt
 from operator import itemgetter
 from utils.constants import ElementType
 from core.element import Element
+from dataclasses import dataclass
+
+
+@dataclass
+class Candidates:
+    candidates: list
+    element: object
+    avg_distance: int
 
 
 class Helper:
@@ -87,13 +95,14 @@ class Helper:
         return (total_elements*(100.0*portion_dist/avg_distance))/len(near_elements)
 
     @staticmethod
-    def select_candidates(elements: list):
+    def select_candidates(elements: list) -> Candidates:
         """Search several options for fusion
-            return [list], element, avg_distance
+            elements: List o same elements
+            return Candidate object
         """
         avg_distances = 0
         sum_distance = 0
-        distances = []
+        candidates = []
         selected_elements = []
 
         # List of same elements
@@ -120,9 +129,9 @@ class Helper:
                 continue
             sum_distance += distance
             # TODO: Fix here, not ordering
-            distances.append([distance, element])
+            candidates.append([distance, element])
         avg_distances = sum_distance / len(elements)
-        return distances, random_element, avg_distances
+        return Candidates(candidates, random_element, avg_distances)
 
     @ staticmethod
     def get_distance(p_0, p_1):

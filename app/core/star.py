@@ -49,10 +49,10 @@ class Star:
         '''Select the elements using temperature and distance
         '''
         temperature = Helper.get_temperature(
-            fusion_candidates[0], fusion_candidates[2], len(self._elements))
+            fusion_candidates.candidates, fusion_candidates.avg_distance, len(self._elements))
         if temperature > 170 and Helper.get_randon_number_between(0, 1, True) > 0.5:
-            final_candidate = Helper.random_list_element(fusion_candidates[0])
-            self._fusion(fusion_candidates[1], final_candidate[1])
+            final_candidate = Helper.random_list_element(fusion_candidates.candidates)
+            self._fusion(fusion_candidates.element, final_candidate[1])
 
     def _get_next_element_type(self, element_type):
         '''Get next type of element after fusion
