@@ -13,7 +13,7 @@ def main():
     for _ in range(500):
         star = Star(base_elements, constants)
         star.life()
-        elements = Helper.fision(star.elements)
+        elements = Helper.fusion(star.elements)
         distance_matrix = reader.build_distance_matrix()
         temporal = int(Helper.path_size(elements, distance_matrix))
         if minimal is None:
@@ -23,7 +23,7 @@ def main():
             minimal = temporal
             min_elements = elements
 
-    print(min_elements, ':', minimal)
+    print(min_elements[:-1], ':', minimal)
 
 
 if __name__ == "__main__":

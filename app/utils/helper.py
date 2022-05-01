@@ -10,11 +10,11 @@ class Helper:
     '''Utilities static methods
     '''
     @staticmethod
-    def path_size(str_elements, distance_matrix):
-        '''Size
-        '''
-        pos_array = str_elements.split(',')[:-1]
-        path_index = [int(float(elem)) - 1 for elem in pos_array]
+    def path_size(str_elements: str, distance_matrix: list) -> float:
+        """ Total disance
+        """
+        pos_array = str_elements[:-1].split(',')
+        path_index = [int(elem) - 1 for elem in pos_array]
         total = 0.0
         for index in range(len(path_index)):
             if index == len(path_index) - 1:
@@ -22,8 +22,9 @@ class Helper:
             total += distance_matrix[path_index[index]][path_index[index + 1]]
 
     @staticmethod
-    def fision(elements):
-        '''Unpack elements
+    def fusion(elements: list) -> str:
+        '''Unpack elements, track atomic elements
+        return list adding a comma at the end.
         '''
         chain = ''
         if isinstance(elements, Element):
@@ -31,10 +32,10 @@ class Helper:
                 chain += str(int(elements.node_id)) + ','
                 return chain
 
-            chain += Helper.fision(elements.nodes)
+            chain += Helper.fusion(elements.nodes)
         else:
             for element in elements:
-                chain += Helper.fision(element)
+                chain += Helper.fusion(element)
         return chain
 
     @staticmethod
