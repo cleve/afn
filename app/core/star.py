@@ -30,17 +30,17 @@ class Star:
         return self._elements
     
     def life(self):
-        '''Star life
+        '''Start star life
         '''
         while 1:
             # select an element to fusion it
             element_type_candidate = Helper.get_randon_element()
-            search_elements = Helper.get_candidates(
+            same_elements = Helper.get_candidates(
                 self._elements, element_type_candidate)
             # We need at least two elements to fusion it
-            if len(search_elements) < 2:
+            if len(same_elements) < 2:
                 continue
-            fusion_candidates = Helper.select_candidates(search_elements)
+            fusion_candidates = Helper.select_candidates(same_elements)
             self._start_fusion(fusion_candidates)
             if len(self._elements) == 2:
                 break
