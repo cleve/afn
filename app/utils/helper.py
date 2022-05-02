@@ -175,9 +175,6 @@ class Helper:
             elem_0 (Element): First element
             elem_1 (Element): Second element
             distance_matrix: Primiary matrix
-
-        Returns:
-            list: list of ordered structure
         """
         # Check combinations
         if elem_0.element_type == ElementType.HELIUM:
