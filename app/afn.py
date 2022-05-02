@@ -7,13 +7,13 @@ from core.star import Star
 def main():
     reader = Reader('samples/dj38.tsp')
     base_elements = reader.read_tsp()
+    distance_matrix = reader.build_distance_matrix()
     minimal = None
     min_elements = None
     for _ in range(500):
         star = Star(base_elements)
         star.life()
         elements = Helper.fusion(star.elements)
-        distance_matrix = reader.build_distance_matrix()
         temporal = int(Helper.path_size(elements, distance_matrix))
         if minimal is None:
             minimal = temporal
