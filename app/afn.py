@@ -11,7 +11,7 @@ def main():
     minimal = None
     min_elements = None
     for _ in range(500):
-        star = Star(base_elements)
+        star = Star(base_elements, distance_matrix)
         star.life()
         elements = Helper.fision(star.elements)
         temporal = int(Helper.path_size(elements, distance_matrix))

@@ -7,6 +7,7 @@ from core.element import Element
 from dataclasses import dataclass
 import math
 from collections import namedtuple
+from itertools import combinations
 
 
 @dataclass
@@ -165,6 +166,35 @@ class Helper:
         """
         distance = sqrt((p_1[0] - p_0[0])**2 + (p_1[1] - p_0[1])**2)
         return distance
+
+    @staticmethod
+    def set_internal_structure(elem_0, elem_1, distance_matrix) -> None:
+        """Determine the best structure
+
+        Args:
+            elem_0 (Element): First element
+            elem_1 (Element): Second element
+            distance_matrix: Primiary matrix
+
+        Returns:
+            list: list of ordered structure
+        """
+        # Check combinations
+        if elem_0.element_type == ElementType.HELIUM:
+            comb = combinations(elem_0.nodes + elem_1.nodes, 2)
+            min_dist = math.inf
+            union = None
+            for tup in comb:
+                dist = distance_matrix[int(tup[0].node_id - 1)][int(tup[1].node_id - 1)]
+                if dist != 0 and dist < min_dist:
+                    min_dist = dist
+                    union = tup
+            # elem_0
+            if elem_0.nodes[0] == union[0]:
+                elem_0.nodes[0], elem_0.nodes[1] = elem_0.nodes[1], elem_0.nodes[0]
+            # elem_1
+            if elem_1.nodes[1] == union[1]:
+                elem_1.nodes[0], elem_1.nodes[1] = elem_1.nodes[1], elem_1.nodes[0]
 
     @ staticmethod
     def get_mid_point(p_0, p_1):

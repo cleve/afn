@@ -10,7 +10,7 @@ class Star:
         Fusion distance: 1x10-15m
     """
 
-    def __init__(self, base_elements):
+    def __init__(self, base_elements, distance_matrix):
         """Star init
 
         Args:
@@ -18,6 +18,7 @@ class Star:
             constants (Constant): class
         """
         self.name = 'sun'
+        self.distance_matrix = distance_matrix
         self.track_fusion = []
         self._elements = []
         self._ignition(base_elements)
@@ -69,6 +70,8 @@ class Star:
             1, mid_point[0], mid_point[1], new_element_type)
         # Id for the new element
         new_element.node_id = str(id(new_element))
+        # Optimal internal structure
+        Helper.set_internal_structure(elem_0, elem_1, self.distance_matrix)
         # Tracking elements
         new_element.nodes = [elem_0, elem_1]
         new_elements = set(self._elements)
