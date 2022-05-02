@@ -15,3 +15,4 @@ class Constants:
     DEBUG = True
     INTEGER = True
     REGION = 5
+    LIMIT_TEMPERATURE = 170

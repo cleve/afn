@@ -2,9 +2,10 @@ from enum import Enum
 import random
 from math import sqrt
 from operator import itemgetter
-from utils.constants import ElementType
+from utils.constants import Constants, ElementType
 from core.element import Element
 from dataclasses import dataclass
+import math
 
 
 @dataclass
@@ -87,12 +88,17 @@ class Helper:
     def get_temperature(near_elements: list, avg_distance: int, total_elements: int):
         '''Temperature using density
         '''
-        portion_dist = 0
+        ratio_elements = len(near_elements) / total_elements
+        ratio = math.inf
         for element in near_elements:
-            portion_dist += element.get('distance')
-        portion_dist = portion_dist/len(near_elements)
+            if element.get('distance') < ratio:
+                ratio = element.get('distance')
         # Calcule of temperature
-        return (total_elements*(100.0*portion_dist/avg_distance))/len(near_elements)
+        temp = Constants.LIMIT_TEMPERATURE *1.1
+        if len(near_elements) < 4:
+            return temp
+        ratio = ratio / avg_distance
+        return temp*ratio_elements + temp*ratio
 
     @staticmethod
     def select_candidates(elements: list) -> Candidates:
