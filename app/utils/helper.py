@@ -56,10 +56,10 @@ class Helper:
                 chain += str(int(elements.node_id)) + ','
                 return chain
 
-            chain += Helper.fusion(elements.nodes)
+            chain += Helper.fision(elements.nodes)
         else:
             for element in elements:
-                chain += Helper.fusion(element)
+                chain += Helper.fision(element)
         return chain
 
     @staticmethod
