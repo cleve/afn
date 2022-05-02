@@ -45,12 +45,13 @@ class Helper:
             total += distance_matrix[path_index[index]][path_index[index + 1]]
 
     @staticmethod
-    def fusion(elements: list) -> str:
+    def fision(elements: list) -> str:
         '''Unpack elements, track atomic elements
         return list adding a comma at the end.
         '''
         chain = ''
         if isinstance(elements, Element):
+            # Border condition, the elemental state.
             if elements.element_type == ElementType.HIDROGEN:
                 chain += str(int(elements.node_id)) + ','
                 return chain
