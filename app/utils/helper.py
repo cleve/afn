@@ -6,6 +6,7 @@ from utils.constants import Constants, ElementType
 from core.element import Element
 from dataclasses import dataclass
 import math
+from collections import namedtuple
 
 
 @dataclass
@@ -18,6 +19,19 @@ class Candidates:
 class Helper:
     '''Utilities static methods
     '''
+    @staticmethod
+    def namedtuple_factory(tuple_name: str, keys: str) -> namedtuple:
+        """Get a named tuple object
+
+        Args:
+            tuple_name (str): Name to be instantiated
+            keys (str): key space separated
+
+        Returns:
+            namedtuple: object instance
+        """
+        return namedtuple(tuple_name, keys)
+    
     @staticmethod
     def path_size(str_elements: str, distance_matrix: list) -> float:
         """ Total disance
@@ -48,8 +62,8 @@ class Helper:
         return chain
 
     @staticmethod
-    def random_list_element(elements):
-        '''Simple choice
+    def random_list_element(elements: list) -> dict:
+        '''random.choice wrapper
         '''
         return random.choice(elements)
 
@@ -85,20 +99,26 @@ class Helper:
         return list(candidates)
 
     @staticmethod
-    def get_temperature(near_elements: list, avg_distance: int, total_elements: int):
+    def get_temperature(near_elements: list, avg_distance: int, total_elements: int) -> namedtuple:
         '''Temperature using density
         '''
+        Temperature = Helper.namedtuple_factory(
+            "Temperature", "temperature element")
         ratio_elements = len(near_elements) / total_elements
         ratio = math.inf
+        element_selected = None
         for element in near_elements:
             if element.get('distance') < ratio:
                 ratio = element.get('distance')
+                element_selected = element.get('element')
         # Calcule of temperature
         temp = Constants.LIMIT_TEMPERATURE *1.1
         if len(near_elements) < 4:
-            return temp
+            return Temperature(
+                temp*ratio_elements + temp*ratio, random.choice(near_elements).get('element'))
         ratio = ratio / avg_distance
-        return temp*ratio_elements + temp*ratio
+        return Temperature(
+            temp*ratio_elements + temp*ratio, element_selected)
 
     @staticmethod
     def select_candidates(elements: list) -> Candidates:
@@ -134,7 +154,6 @@ class Helper:
             if distance == 0:
                 continue
             sum_distance += distance
-            # TODO: Fix here, not ordering
             candidates.append({'distance': distance, "element": element})
         avg_distances = sum_distance / len(elements)
         return Candidates(candidates, random_element, avg_distances)

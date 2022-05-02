@@ -47,9 +47,8 @@ class Star:
         '''
         temperature = Helper.get_temperature(
             fusion_candidates.candidates, fusion_candidates.avg_distance, len(self._elements))
-        if temperature > Constants.LIMIT_TEMPERATURE and Helper.get_randon_number_between(0, 1, True) > 0.5:
-            final_candidate = Helper.random_list_element(fusion_candidates.candidates)
-            self._fusion(fusion_candidates.element, final_candidate.get('element'))
+        if temperature.temperature > Constants.LIMIT_TEMPERATURE and Helper.get_randon_number_between(0, 1, True) > 0.5:
+            self._fusion(fusion_candidates.element, temperature.element)
 
     def _get_next_element_type(self, element_type):
         '''Get next type of element after fusion
