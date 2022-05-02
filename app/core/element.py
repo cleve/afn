@@ -21,4 +21,4 @@ class Element:
         return (self.x, self.y)
 
     def __repr__(self):
-        return self.__class__.__name__ + '-' + str(self.type)
+        return f'<{self.__class__.__name__} - {self.element_type}>'

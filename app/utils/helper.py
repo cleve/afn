@@ -84,12 +84,12 @@ class Helper:
         return list(candidates)
 
     @staticmethod
-    def get_temperature(near_elements, avg_distance, total_elements):
+    def get_temperature(near_elements: list, avg_distance: int, total_elements: int):
         '''Temperature using density
         '''
         portion_dist = 0
         for element in near_elements:
-            portion_dist += element[0]
+            portion_dist += element.get('distance')
         portion_dist = portion_dist/len(near_elements)
         # Calcule of temperature
         return (total_elements*(100.0*portion_dist/avg_distance))/len(near_elements)
@@ -129,7 +129,7 @@ class Helper:
                 continue
             sum_distance += distance
             # TODO: Fix here, not ordering
-            candidates.append([distance, element])
+            candidates.append({'distance': distance, "element": element})
         avg_distances = sum_distance / len(elements)
         return Candidates(candidates, random_element, avg_distances)
 

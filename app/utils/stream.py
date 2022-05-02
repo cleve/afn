@@ -2,9 +2,8 @@ from utils.helper import Helper
 
 
 class Reader:
-    def __init__(self, file_path, constants):
+    def __init__(self, file_path):
         self.file_path = file_path
-        self.constants = constants
         self.start_parsing = False
         self.matrix = None
         self.coordinates = []

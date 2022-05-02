@@ -5,13 +5,12 @@ from core.star import Star
 
 
 def main():
-    constants = Constants()
-    reader = Reader('samples/dj38.tsp', constants)
+    reader = Reader('samples/dj38.tsp')
     base_elements = reader.read_tsp()
     minimal = None
     min_elements = None
     for _ in range(500):
-        star = Star(base_elements, constants)
+        star = Star(base_elements)
         star.life()
         elements = Helper.fusion(star.elements)
         distance_matrix = reader.build_distance_matrix()

@@ -1,5 +1,5 @@
 from core.element import Element
-from utils.constants import ElementType
+from utils.constants import ElementType, Constants
 from utils.helper import Helper
 
 
@@ -10,19 +10,16 @@ class Star:
         Fusion distance: 1x10-15m
     """
 
-    def __init__(self, base_elements, constants):
+    def __init__(self, base_elements):
         """Star init
 
         Args:
             base_elements (list): [node_number, x, y]
             constants (Constant): class
         """
-        # Debug
-        self.DEBUG = True
         self.name = 'sun'
         self.track_fusion = []
         self._elements = []
-        self.constants = constants
         self._ignition(base_elements)
 
     @property
@@ -52,7 +49,7 @@ class Star:
             fusion_candidates.candidates, fusion_candidates.avg_distance, len(self._elements))
         if temperature > 170 and Helper.get_randon_number_between(0, 1, True) > 0.5:
             final_candidate = Helper.random_list_element(fusion_candidates.candidates)
-            self._fusion(fusion_candidates.element, final_candidate[1])
+            self._fusion(fusion_candidates.element, final_candidate.get('element'))
 
     def _get_next_element_type(self, element_type):
         '''Get next type of element after fusion

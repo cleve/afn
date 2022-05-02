@@ -12,10 +12,6 @@ class ElementType(Enum):
 class Constants:
     '''Main class
     '''
-
-    def __init__(self):
-        self.DEBUG = True
-
-        # Config
-        self.INTEGER = True  # Distance
-        self.REGION = 5      # Units of separation for temperature representation
+    DEBUG = True
+    INTEGER = True
+    REGION = 5
