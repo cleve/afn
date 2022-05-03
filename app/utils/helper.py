@@ -1,11 +1,10 @@
 from enum import Enum
 import random
-from math import sqrt
+from math import sqrt, inf
 from operator import itemgetter
 from utils.constants import Constants, ElementType
 from core.element import Element
 from dataclasses import dataclass
-import math
 from collections import namedtuple
 from itertools import combinations
 
@@ -34,11 +33,10 @@ class Helper:
         return namedtuple(tuple_name, keys)
     
     @staticmethod
-    def path_size(str_elements: str, distance_matrix: list) -> float:
+    def path_size(nodes: list, distance_matrix: list) -> float:
         """ Total disance
         """
-        pos_array = str_elements[:-1].split(',')
-        path_index = [int(elem) - 1 for elem in pos_array]
+        path_index = [int(node) - 1 for node in nodes]
         total = 0.0
         for index in range(len(path_index)):
             if index == len(path_index) - 1:
@@ -50,17 +48,15 @@ class Helper:
         '''Unpack elements, track atomic elements
         return list adding a comma at the end.
         '''
-        chain = ''
+        chain = []
         if isinstance(elements, Element):
             # Border condition, the elemental state.
             if elements.element_type == ElementType.HIDROGEN:
-                chain += str(int(elements.node_id)) + ','
-                return chain
+                return [str(int(elements.node_id))]
 
-            chain += Helper.fision(elements.nodes)
+            return Helper.fision(elements.nodes)
         else:
-            for element in elements:
-                chain += Helper.fision(element)
+            chain = Helper.fision(elements[0]) + Helper.fision(elements[1])
         return chain
 
     @staticmethod
@@ -107,7 +103,7 @@ class Helper:
         Temperature = Helper.namedtuple_factory(
             "Temperature", "temperature element")
         ratio_elements = len(near_elements) / total_elements
-        ratio = math.inf
+        ratio = inf
         element_selected = None
         for element in near_elements:
             if element.get('distance') < ratio:
@@ -179,7 +175,7 @@ class Helper:
         # Check combinations
         if elem_0.element_type == ElementType.HELIUM:
             comb = combinations(elem_0.nodes + elem_1.nodes, 2)
-            min_dist = math.inf
+            min_dist = inf
             union = None
             for tup in comb:
                 dist = distance_matrix[int(tup[0].node_id - 1)][int(tup[1].node_id - 1)]
