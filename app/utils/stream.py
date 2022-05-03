@@ -8,7 +8,7 @@ class Reader:
         self.matrix = None
         self.coordinates = []
 
-    def extract_components(self, line):
+    def _extract_components(self, line):
         """Return node number, x_coord, y_coord
         """
         raw_values = line.split(' ')
@@ -41,12 +41,12 @@ class Reader:
                     continue
                 if not self.start_parsing:
                     continue
-                numbers = self.extract_components(line)
+                numbers = self._extract_components(line)
                 self.coordinates.append(
-                    [numbers[1], numbers[2]]
+                    (numbers[1], numbers[2])
                 )
                 coordinates.append(
-                    [numbers[0], numbers[1], numbers[2]]
+                    (numbers[0], numbers[1], numbers[2])
                 )
 
         return coordinates
