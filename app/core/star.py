@@ -15,7 +15,7 @@ class Star:
 
         Args:
             base_elements (list): [node_number, x, y]
-            constants (Constant): class
+            distance_matrix (list): matrix repr
         """
         self.name = 'sun'
         self.distance_matrix = distance_matrix
