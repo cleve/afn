@@ -78,7 +78,8 @@ class Star:
             distance = Helper.get_distance(left.get_coordinates(), right.get_coordinates())
             barrier = self._fusion_barrier(left, right)
             route_gain = self._route_gain(left, right)
-            score = self._pair_score(distance, avg_pair_distance, barrier, route_gain)
+            local_heat = (left.local_heat + right.local_heat) / 2.0
+            score = self._pair_score(distance, avg_pair_distance, barrier, route_gain, local_heat)
             profile = {
                 'score': score,
                 'distance': distance,
@@ -140,7 +141,7 @@ class Star:
         baseline = 1.0 + spread_0 + spread_1
         return max(0.0, (spread_0 + spread_1 - nearest_bridge) / baseline)
 
-    def _pair_score(self, distance, avg_pair_distance, barrier, route_gain):
+    def _pair_score(self, distance, avg_pair_distance, barrier, route_gain, local_heat=0.0):
         distance_term = 1.0 / (1.0 + distance)
 
         density_factor = max(0.2, self.density)
@@ -153,6 +154,7 @@ class Star:
             - 0.15 * barrier
             + 0.12 * density_factor
             + pressure_boost
+            + 0.10 * local_heat
         )
 
     def _select_pair_for_fusion(self):
@@ -251,6 +253,9 @@ class Star:
             self.pressure = max(0.7, self.pressure * 0.996)
 
         self.density = max(0.2, len(self._elements) / max(1, self._initial_count))
+        # Decay local heat each cycle
+        for elem in self._elements:
+            elem.local_heat = max(0.0, elem.local_heat * 0.80)
 
     def _start_fusion(self, fusion_pair) -> bool:
         '''Select the elements using temperature and distance
@@ -285,6 +290,21 @@ class Star:
             return self._get_next_element_type(elem_0.element_type)
         return max(elem_0.element_type, elem_1.element_type, key=lambda item: item.value)
 
+    def _propagate_fusion_heat(self, site_x, site_y, energy: float):
+        '''Distribute heat from a fusion event to surviving elements.
+
+        Uses a Gaussian kernel so nearby elements receive more heat than
+        distant ones.  The characteristic radius is scaled by the average
+        pair distance so that the effect is meaningful regardless of problem
+        size.
+        '''
+        avg_dist = self._average_pair_distance()
+        sigma = max(1.0, avg_dist * 0.5)
+        for elem in self._elements:
+            d = Helper.get_distance((site_x, site_y), elem.get_coordinates())
+            heat = energy * exp(-(d ** 2) / (2.0 * sigma ** 2))
+            elem.local_heat = min(1.0, elem.local_heat + heat)
+
     def _fusion(self, elem_0, elem_1):
         '''Fusion two elements
         '''
@@ -303,6 +323,8 @@ class Star:
         fusioned = {elem_0, elem_1}
         self._elements = list(new_elements - fusioned)
         self._elements.append(new_element)
+        # Heat wave from the fusion site
+        self._propagate_fusion_heat(mid_point[0], mid_point[1], energy=0.30)
 
     def _ignition(self, base_elements):
         '''Elements creation, at the begining every element

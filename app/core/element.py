@@ -14,6 +14,7 @@ class Element:
         self.y = y
         self.node_id = node_id
         self.element_type = element_type
+        self.local_heat = 0.0
 
     def get_coordinates(self):
         '''Get a tuple (x, y)
