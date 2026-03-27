@@ -40,7 +40,7 @@ From the project root:
 
 ```sh
 cd app
-python3 afn.py [tsp_file] [-i ITERATIONS]
+python3 afn.py [tsp_file] [-i ITERATIONS] [-p PROCESSES]
 ```
 
 ## CLI arguments
@@ -49,6 +49,9 @@ python3 afn.py [tsp_file] [-i ITERATIONS]
 	- Default: `samples/dj38.tsp`
 - `-i`, `--iterations`: optional number of simulation runs.
 	- Default: `500`
+	- Must be greater than `0`
+- `-p`, `--processes`: optional number of worker processes.
+	- Default: `1`
 	- Must be greater than `0`
 
 ## Examples
@@ -74,4 +77,20 @@ cd app
 python3 afn.py samples/dj38.tsp -i 250
 ```
 
-The program prints the best route found and its total tour length.
+Run with multiple processes:
+
+```sh
+cd app
+python3 afn.py samples/dj38.tsp -i 1000 -p 4
+```
+
+## Output format
+
+The program prints:
+
+- Input file
+- Iteration count
+- Process count
+- Best route length
+- Elapsed execution time
+- Best route sequence
