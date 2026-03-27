@@ -13,6 +13,7 @@ class TestAfnCli(unittest.TestCase):
         self.assertEqual(args.processes, 1)
         self.assertFalse(args.plot)
         self.assertEqual(args.plot_file, 'solution.png')
+        self.assertFalse(args.progress)
 
     def test_parse_args_accepts_custom_values(self):
         args = parse_args([
@@ -20,7 +21,8 @@ class TestAfnCli(unittest.TestCase):
             '--iterations', '50',
             '--processes', '4',
             '--plot',
-            '--plot-file', 'dj38_solution.png'
+            '--plot-file', 'dj38_solution.png',
+            '--progress'
         ])
 
         self.assertEqual(args.tsp_file, 'samples/dj38.tsp')
@@ -28,6 +30,7 @@ class TestAfnCli(unittest.TestCase):
         self.assertEqual(args.processes, 4)
         self.assertTrue(args.plot)
         self.assertEqual(args.plot_file, 'dj38_solution.png')
+        self.assertTrue(args.progress)
 
     def test_parse_args_rejects_non_positive_iterations(self):
         with self.assertRaises(SystemExit):

@@ -40,7 +40,7 @@ From the project root:
 
 ```sh
 cd app
-python3 afn.py [tsp_file] [-i ITERATIONS] [-p PROCESSES] [--plot] [--plot-file OUTPUT.png]
+python3 afn.py [tsp_file] [-i ITERATIONS] [-p PROCESSES] [--plot] [--plot-file OUTPUT.png] [--progress]
 ```
 
 ## CLI arguments
@@ -57,6 +57,8 @@ python3 afn.py [tsp_file] [-i ITERATIONS] [-p PROCESSES] [--plot] [--plot-file O
 	- Default: disabled
 - `--plot-file`: output path for the generated image.
 	- Default: `solution.png`
+- `--progress`: show a live progress bar with completion percent.
+	- Default: disabled
 
 ## Examples
 
@@ -93,6 +95,13 @@ Run and generate a plot image:
 ```sh
 cd app
 python3 afn.py samples/dj38.tsp -i 300 -p 4 --plot --plot-file dj38_solution.png
+```
+
+Run with a progress bar:
+
+```sh
+cd app
+python3 afn.py samples/dj38.tsp -i 500 -p 4 --progress
 ```
 
 ## Output format
