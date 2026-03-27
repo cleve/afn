@@ -40,7 +40,7 @@ From the project root:
 
 ```sh
 cd app
-python3 afn.py [tsp_file] [-i ITERATIONS] [-p PROCESSES]
+python3 afn.py [tsp_file] [-i ITERATIONS] [-p PROCESSES] [--plot] [--plot-file OUTPUT.png]
 ```
 
 ## CLI arguments
@@ -53,6 +53,10 @@ python3 afn.py [tsp_file] [-i ITERATIONS] [-p PROCESSES]
 - `-p`, `--processes`: optional number of worker processes.
 	- Default: `1`
 	- Must be greater than `0`
+- `--plot`: optional flag to generate a solution plot image.
+	- Default: disabled
+- `--plot-file`: output path for the generated image.
+	- Default: `solution.png`
 
 ## Examples
 
@@ -84,6 +88,13 @@ cd app
 python3 afn.py samples/dj38.tsp -i 1000 -p 4
 ```
 
+Run and generate a plot image:
+
+```sh
+cd app
+python3 afn.py samples/dj38.tsp -i 300 -p 4 --plot --plot-file dj38_solution.png
+```
+
 ## Output format
 
 The program prints:
@@ -94,3 +105,4 @@ The program prints:
 - Best route length
 - Elapsed execution time
 - Best route sequence
+- Plot file path (when plotting is enabled)

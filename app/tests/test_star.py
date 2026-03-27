@@ -63,6 +63,8 @@ class TestStarMethods(unittest.TestCase):
 
         self.assertIsNotNone(pair)
         self.assertEqual(len(pair), 3)
+        self.assertIn('score', pair[2])
+        self.assertIn('distance', pair[2])
 
     def test_core_state_updates_after_fusion(self):
         random.seed(0)
@@ -78,10 +80,23 @@ class TestStarMethods(unittest.TestCase):
 
         forced_pair = star._get_fallback_pair()
         star._fusion(forced_pair[0], forced_pair[1])
-        star._update_core_state(True, forced_pair[2])
+        star._update_core_state(True, forced_pair[2]['score'])
 
         self.assertLess(len(star.elements), initial_count)
         self.assertGreaterEqual(star.core_temperature, initial_temperature)
+
+    def test_collapse_probability_is_bounded(self):
+        base_elements = [(index, float(index), 0.0) for index in range(1, 6)]
+        distance_matrix = [
+            [abs(ii - jj) for jj in range(len(base_elements))]
+            for ii in range(len(base_elements))
+        ]
+        star = Star(base_elements, distance_matrix)
+
+        probability = star._collapse_probability(idle_cycles=3, max_idle_cycles=10)
+
+        self.assertGreaterEqual(probability, 0.0)
+        self.assertLessEqual(probability, 1.0)
 
 
 if __name__ == '__main__':

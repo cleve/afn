@@ -55,7 +55,8 @@ class Star:
                 continue
 
             idle_cycles += 1
-            if idle_cycles < max_idle_cycles:
+            collapse_probability = self._collapse_probability(idle_cycles, max_idle_cycles)
+            if idle_cycles < max_idle_cycles and random.random() > collapse_probability:
                 self._update_core_state(False, 0.0)
                 continue
 
@@ -64,7 +65,7 @@ class Star:
                 break
 
             self._fusion(fallback_pair[0], fallback_pair[1])
-            self._update_core_state(True, fallback_pair[2])
+            self._update_core_state(True, fallback_pair[2]['score'])
             idle_cycles = 0
 
     def _get_pair_candidates(self):
@@ -75,8 +76,17 @@ class Star:
         avg_pair_distance = self._average_pair_distance()
         for left, right in combinations(self._elements, 2):
             distance = Helper.get_distance(left.get_coordinates(), right.get_coordinates())
-            score = self._pair_score(left, right, distance, avg_pair_distance)
-            pairs.append((left, right, score))
+            barrier = self._fusion_barrier(left, right)
+            route_gain = self._route_gain(left, right)
+            score = self._pair_score(distance, avg_pair_distance, barrier, route_gain)
+            profile = {
+                'score': score,
+                'distance': distance,
+                'avg_distance': avg_pair_distance,
+                'barrier': barrier,
+                'route_gain': route_gain,
+            }
+            pairs.append((left, right, profile))
         return pairs
 
     def _average_pair_distance(self):
@@ -130,10 +140,8 @@ class Star:
         baseline = 1.0 + spread_0 + spread_1
         return max(0.0, (spread_0 + spread_1 - nearest_bridge) / baseline)
 
-    def _pair_score(self, elem_0, elem_1, distance, avg_pair_distance):
+    def _pair_score(self, distance, avg_pair_distance, barrier, route_gain):
         distance_term = 1.0 / (1.0 + distance)
-        route_gain = self._route_gain(elem_0, elem_1)
-        barrier = self._fusion_barrier(elem_0, elem_1)
 
         density_factor = max(0.2, self.density)
         normalized_distance = avg_pair_distance / (distance + 1e-9)
@@ -152,38 +160,81 @@ class Star:
         if not pair_candidates:
             return None
 
-        max_score = max(candidate[2] for candidate in pair_candidates)
+        max_score = max(candidate[2]['score'] for candidate in pair_candidates)
         min_weight = 1e-6
+        selection_temperature = self._selection_temperature()
         weighted = []
-        for elem_0, elem_1, score in pair_candidates:
-            weight = max(min_weight, exp((score - max_score) / 0.35))
-            weighted.append((elem_0, elem_1, score, weight))
+        for elem_0, elem_1, profile in pair_candidates:
+            noisy_score = profile['score'] + self._stochastic_noise(0.05)
+            weight = max(min_weight, exp((noisy_score - max_score) / selection_temperature))
+            weighted.append((elem_0, elem_1, profile, weight))
 
         total_weight = sum(item[3] for item in weighted)
         threshold = random.uniform(0.0, total_weight)
         cumulative = 0.0
-        for elem_0, elem_1, score, weight in weighted:
+        for elem_0, elem_1, profile, weight in weighted:
             cumulative += weight
             if cumulative >= threshold:
-                return (elem_0, elem_1, score)
+                return (elem_0, elem_1, profile)
 
-        elem_0, elem_1, score, _ = weighted[-1]
-        return (elem_0, elem_1, score)
+        elem_0, elem_1, profile, _ = weighted[-1]
+        return (elem_0, elem_1, profile)
 
     def _get_fallback_pair(self):
         pair_candidates = self._get_pair_candidates()
         if not pair_candidates:
             return None
-        return max(pair_candidates, key=lambda candidate: candidate[2])
+        return max(pair_candidates, key=lambda candidate: candidate[2]['score'])
 
-    def _fusion_probability(self, score):
+    def _selection_temperature(self):
+        # Higher pressure and density sharpen selection; early stages remain more exploratory.
+        stage_ratio = len(self._elements) / max(1, self._initial_count)
+        base = 0.45 + 0.45 * stage_ratio
+        pressure_effect = 1.0 / (1.0 + 0.20 * self.pressure)
+        density_effect = 1.0 / (1.0 + 0.30 * self.density)
+        return max(0.20, min(1.20, base * pressure_effect * density_effect))
+
+    def _stochastic_noise(self, scale=0.05):
+        return random.uniform(-scale, scale)
+
+    def _collapse_probability(self, idle_cycles: int, max_idle_cycles: int):
+        idle_ratio = idle_cycles / max(1, max_idle_cycles)
+        thermal_ratio = self.core_temperature / Constants.LIMIT_TEMPERATURE
+        pressure_ratio = self.pressure / 2.5
+        activation = 2.6 * idle_ratio + 0.25 * pressure_ratio - 0.15 * thermal_ratio
+        return 1.0 / (1.0 + exp(-activation))
+
+    def _fusion_probability(self, profile):
+        if isinstance(profile, dict):
+            score = profile.get('score', 0.0)
+            distance = profile.get('distance', 1.0)
+            avg_distance = profile.get('avg_distance', 1.0)
+            barrier = profile.get('barrier', 0.7)
+            route_gain = profile.get('route_gain', 0.0)
+        else:
+            score = profile
+            distance = 1.0
+            avg_distance = 1.0
+            barrier = 0.7
+            route_gain = 0.0
+
         thermal_drive = (
             (self.core_temperature / Constants.LIMIT_TEMPERATURE)
             + 0.30 * self.density
             + 0.20 * self.pressure
         )
-        activation = (score + 0.40 * thermal_drive) / 0.90
-        return 1.0 / (1.0 + exp(-activation))
+
+        score_probability = 1.0 / (1.0 + exp(-((score + 0.40 * thermal_drive) / 0.90)))
+        distance_probability = exp(-distance / (avg_distance + 1e-9))
+        barrier_probability = exp(-barrier / max(0.25, thermal_drive))
+
+        probability = (
+            0.50 * score_probability
+            + 0.20 * distance_probability
+            + 0.20 * barrier_probability
+            + 0.10 * route_gain
+        )
+        return max(0.0, min(1.0, probability))
 
     def _update_core_state(self, fused: bool, score: float):
         if fused:
@@ -204,15 +255,20 @@ class Star:
     def _start_fusion(self, fusion_pair) -> bool:
         '''Select the elements using temperature and distance
         '''
-        elem_0, elem_1, score = fusion_pair
-        probability = self._fusion_probability(score)
+        elem_0, elem_1, profile = fusion_pair
+        probability = self._fusion_probability(profile)
         if random.random() <= probability:
             self._fusion(elem_0, elem_1)
-            self._update_core_state(True, score)
-            self.track_fusion.append((elem_0.node_id, elem_1.node_id, round(score, 4), round(probability, 4)))
+            self._update_core_state(True, profile['score'])
+            self.track_fusion.append((
+                elem_0.node_id,
+                elem_1.node_id,
+                round(profile['score'], 4),
+                round(probability, 4)
+            ))
             return True
 
-        self._update_core_state(False, score)
+        self._update_core_state(False, profile['score'])
         return False
 
     def _get_next_element_type(self, element_type):
