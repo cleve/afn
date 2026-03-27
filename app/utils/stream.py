@@ -1,4 +1,4 @@
-from utils.helper import Helper
+from utils.geometry import euclidean_distance
 
 
 class Reader:
@@ -11,7 +11,7 @@ class Reader:
     def _extract_components(self, line):
         """Return node number, x_coord, y_coord
         """
-        raw_values = line.split(' ')
+        raw_values = line.split()
         return (float(raw_values[0]), float(raw_values[1]), float(raw_values[2]))
 
     def build_distance_matrix(self):
@@ -19,11 +19,12 @@ class Reader:
             return None
         coord_len = len(self.coordinates)
         # Zero matrix.
-        self.matrix = [ [ 0 for i in range(coord_len) ] for j in range(coord_len) ]
+        self.matrix = [[0 for _ in range(coord_len)] for _ in range(coord_len)]
         for ii in range(coord_len):
-            for jj in range(coord_len):
-                self.matrix[ii][jj] = Helper.get_distance(
-                    self.coordinates[ii], self.coordinates[jj])
+            for jj in range(ii, coord_len):
+                distance = euclidean_distance(self.coordinates[ii], self.coordinates[jj])
+                self.matrix[ii][jj] = distance
+                self.matrix[jj][ii] = distance
 
         return self.matrix
 
@@ -32,16 +33,21 @@ class Reader:
         return [node_number, x, y]
         '''
         if self.file_path is None:
-            raise ('File not found')
+            raise FileNotFoundError('File not found')
         coordinates = []
         with open(self.file_path) as f:
             for line in f:
-                if line.find('NODE_COORD_SECTION') == 0:
+                stripped_line = line.strip()
+                if stripped_line == 'NODE_COORD_SECTION':
                     self.start_parsing = True
                     continue
+                if stripped_line == 'EOF':
+                    break
                 if not self.start_parsing:
                     continue
-                numbers = self._extract_components(line)
+                if not stripped_line:
+                    continue
+                numbers = self._extract_components(stripped_line)
                 self.coordinates.append(
                     (numbers[1], numbers[2])
                 )

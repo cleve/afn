@@ -1,4 +1,6 @@
 import unittest
+import random
+
 from core.element import Element
 from core.star import Star
 from utils.constants import ElementType
@@ -22,6 +24,19 @@ class TestStarMethods(unittest.TestCase):
     
     def test_ignition(self):
         assert len(self.star.elements) == 1
+
+    def test_life_terminates_with_odd_number_of_nodes(self):
+        random.seed(0)
+        base_elements = [(index, float(index), 0.0) for index in range(1, 8)]
+        distance_matrix = [
+            [abs(ii - jj) for jj in range(len(base_elements))]
+            for ii in range(len(base_elements))
+        ]
+        star = Star(base_elements, distance_matrix)
+
+        star.life()
+
+        self.assertLessEqual(len(star.elements), 2)
 
 
 if __name__ == '__main__':
