@@ -1,8 +1,18 @@
 from itertools import permutations, product
 from math import inf
+from typing import Sequence
 
 from core.element import Element
 from utils.constants import ElementType
+
+
+DistanceMatrix = Sequence[Sequence[float]]
+
+
+def _leaf_nodes(element) -> list[Element]:
+    if not element.nodes:
+        return [element]
+    return _leaf_nodes(element.nodes[0]) + _leaf_nodes(element.nodes[1])
 
 
 def flatten_route(elements) -> list[str]:
@@ -18,7 +28,7 @@ def flatten_route(elements) -> list[str]:
     return route
 
 
-def tour_length(route: list[str], distance_matrix: list[list[float]], close_loop: bool = True) -> float:
+def tour_length(route: list[str], distance_matrix: DistanceMatrix, close_loop: bool = True) -> float:
     """Return the total length of a route using the precomputed distance matrix."""
     if len(route) < 2:
         return 0.0
@@ -32,7 +42,7 @@ def tour_length(route: list[str], distance_matrix: list[list[float]], close_loop
     return total
 
 
-def two_opt(route: list[str], distance_matrix: list[list[float]]) -> list[str]:
+def two_opt(route: list[str], distance_matrix: DistanceMatrix) -> list[str]:
     """Improve a tour with a standard 2-opt local search pass."""
     if len(route) < 4:
         return route
@@ -68,7 +78,7 @@ def two_opt(route: list[str], distance_matrix: list[list[float]]) -> list[str]:
     return best_route
 
 
-def build_best_route(elements, distance_matrix: list[list[float]]) -> list[str]:
+def build_best_route(elements, distance_matrix: DistanceMatrix) -> list[str]:
     """Evaluate top-level route orientations and return the best route found."""
     if isinstance(elements, Element):
         return flatten_route(elements)
@@ -99,10 +109,13 @@ def optimize_internal_structure(elem_0, elem_1, distance_matrix) -> None:
     if elem_0.element_type != ElementType.HELIUM:
         return
 
+    left_leaf_nodes = _leaf_nodes(elem_0)
+    right_leaf_nodes = _leaf_nodes(elem_1)
+
     min_dist = inf
     union = None
-    for left in elem_0.nodes:
-        for right in elem_1.nodes:
+    for left in left_leaf_nodes:
+        for right in right_leaf_nodes:
             dist = distance_matrix[int(left.node_id) - 1][int(right.node_id) - 1]
             if dist != 0 and dist < min_dist:
                 min_dist = dist
@@ -111,7 +124,7 @@ def optimize_internal_structure(elem_0, elem_1, distance_matrix) -> None:
     if union is None:
         return
 
-    if elem_0.nodes[0] == union[0]:
+    if len(elem_0.nodes) == 2 and elem_0.nodes[0] == union[0]:
         elem_0.nodes[0], elem_0.nodes[1] = elem_0.nodes[1], elem_0.nodes[0]
-    if elem_1.nodes[1] == union[1]:
+    if len(elem_1.nodes) == 2 and elem_1.nodes[1] == union[1]:
         elem_1.nodes[0], elem_1.nodes[1] = elem_1.nodes[1], elem_1.nodes[0]

@@ -1,4 +1,5 @@
-from collections import Counter
+from itertools import combinations
+from math import exp
 import random
 
 from core.element import Element
@@ -26,6 +27,10 @@ class Star:
         self.distance_matrix = distance_matrix
         self.track_fusion = []
         self._elements = []
+        self._initial_count = len(base_elements)
+        self.core_temperature = Constants.LIMIT_TEMPERATURE * 1.05
+        self.density = 1.0
+        self.pressure = 1.0
         self._ignition(base_elements)
 
     @property
@@ -36,14 +41,14 @@ class Star:
         '''Start star life
         '''
         idle_cycles = 0
-        max_idle_cycles = max(10, len(self._elements) * 8)
+        max_idle_cycles = max(10, len(self._elements) * 2)
 
         while len(self._elements) > 2:
-            fusion_candidates = self._get_random_fusion_candidates()
-            fused = False
+            fusion_pair = self._select_pair_for_fusion()
+            if fusion_pair is None:
+                break
 
-            if fusion_candidates is not None:
-                fused = self._start_fusion(fusion_candidates)
+            fused = self._start_fusion(fusion_pair)
 
             if fused:
                 idle_cycles = 0
@@ -51,71 +56,163 @@ class Star:
 
             idle_cycles += 1
             if idle_cycles < max_idle_cycles:
+                self._update_core_state(False, 0.0)
                 continue
 
-            fallback_candidates = self._get_fallback_pair()
-            if fallback_candidates is None:
+            fallback_pair = self._get_fallback_pair()
+            if fallback_pair is None:
                 break
 
-            self._fusion(fallback_candidates[0], fallback_candidates[1])
+            self._fusion(fallback_pair[0], fallback_pair[1])
+            self._update_core_state(True, fallback_pair[2])
             idle_cycles = 0
 
-    def _get_random_fusion_candidates(self):
-        element_type_candidate = Helper.get_random_element()
-        same_elements = Helper.get_candidates(self._elements, element_type_candidate)
-        if len(same_elements) >= 2:
-            return Helper.select_candidates(same_elements)
+    def _get_pair_candidates(self):
+        if len(self._elements) < 2:
+            return []
 
-        candidates_by_type = {
-            element_type: elements
-            for element_type, elements in self._group_elements_by_type().items()
-            if len(elements) >= 2
-        }
-        if not candidates_by_type:
+        pairs = []
+        avg_pair_distance = self._average_pair_distance()
+        for left, right in combinations(self._elements, 2):
+            distance = Helper.get_distance(left.get_coordinates(), right.get_coordinates())
+            score = self._pair_score(left, right, distance, avg_pair_distance)
+            pairs.append((left, right, score))
+        return pairs
+
+    def _average_pair_distance(self):
+        if len(self._elements) < 2:
+            return 1.0
+
+        total = 0.0
+        count = 0
+        for left, right in combinations(self._elements, 2):
+            total += Helper.get_distance(left.get_coordinates(), right.get_coordinates())
+            count += 1
+        return total / count if count else 1.0
+
+    def _fusion_barrier(self, elem_0, elem_1):
+        if elem_0.element_type == ElementType.HIDROGEN and elem_1.element_type == ElementType.HIDROGEN:
+            return 0.35
+        if elem_0.element_type == ElementType.HELIUM and elem_1.element_type == ElementType.HELIUM:
+            return 0.90
+        if elem_0.element_type == ElementType.CARBON and elem_1.element_type == ElementType.CARBON:
+            return 1.10
+        return 0.65
+
+    def _leaf_nodes(self, element):
+        if not element.nodes:
+            return [element]
+        return self._leaf_nodes(element.nodes[0]) + self._leaf_nodes(element.nodes[1])
+
+    def _route_gain(self, elem_0, elem_1):
+        leaf_0 = self._leaf_nodes(elem_0)
+        leaf_1 = self._leaf_nodes(elem_1)
+
+        nearest_bridge = min(
+            self.distance_matrix[int(left.node_id) - 1][int(right.node_id) - 1]
+            for left in leaf_0
+            for right in leaf_1
+        )
+
+        spread_0 = 0.0
+        spread_1 = 0.0
+        if len(leaf_0) > 1:
+            spread_0 = max(
+                self.distance_matrix[int(left.node_id) - 1][int(right.node_id) - 1]
+                for left, right in combinations(leaf_0, 2)
+            )
+        if len(leaf_1) > 1:
+            spread_1 = max(
+                self.distance_matrix[int(left.node_id) - 1][int(right.node_id) - 1]
+                for left, right in combinations(leaf_1, 2)
+            )
+
+        baseline = 1.0 + spread_0 + spread_1
+        return max(0.0, (spread_0 + spread_1 - nearest_bridge) / baseline)
+
+    def _pair_score(self, elem_0, elem_1, distance, avg_pair_distance):
+        distance_term = 1.0 / (1.0 + distance)
+        route_gain = self._route_gain(elem_0, elem_1)
+        barrier = self._fusion_barrier(elem_0, elem_1)
+
+        density_factor = max(0.2, self.density)
+        normalized_distance = avg_pair_distance / (distance + 1e-9)
+        pressure_boost = 0.20 * self.pressure + 0.15 * normalized_distance
+
+        return (
+            0.45 * distance_term
+            + 0.40 * route_gain
+            - 0.15 * barrier
+            + 0.12 * density_factor
+            + pressure_boost
+        )
+
+    def _select_pair_for_fusion(self):
+        pair_candidates = self._get_pair_candidates()
+        if not pair_candidates:
             return None
 
-        element_type = max(candidates_by_type, key=lambda candidate_type: len(candidates_by_type[candidate_type]))
-        return Helper.select_candidates(candidates_by_type[element_type])
+        max_score = max(candidate[2] for candidate in pair_candidates)
+        min_weight = 1e-6
+        weighted = []
+        for elem_0, elem_1, score in pair_candidates:
+            weight = max(min_weight, exp((score - max_score) / 0.35))
+            weighted.append((elem_0, elem_1, score, weight))
 
-    def _group_elements_by_type(self):
-        grouped_elements = {}
-        for element in self._elements:
-            grouped_elements.setdefault(element.element_type, []).append(element)
-        return grouped_elements
+        total_weight = sum(item[3] for item in weighted)
+        threshold = random.uniform(0.0, total_weight)
+        cumulative = 0.0
+        for elem_0, elem_1, score, weight in weighted:
+            cumulative += weight
+            if cumulative >= threshold:
+                return (elem_0, elem_1, score)
+
+        elem_0, elem_1, score, _ = weighted[-1]
+        return (elem_0, elem_1, score)
 
     def _get_fallback_pair(self):
-        if len(self._elements) < 2:
+        pair_candidates = self._get_pair_candidates()
+        if not pair_candidates:
             return None
+        return max(pair_candidates, key=lambda candidate: candidate[2])
 
-        element_counts = Counter(element.element_type for element in self._elements)
-        same_type_pairs = [
-            element_type for element_type, count in element_counts.items()
-            if count >= 2
-        ]
-        if same_type_pairs:
-            prioritized_type = max(same_type_pairs, key=element_counts.get)
-            candidates = self._group_elements_by_type()[prioritized_type]
-        else:
-            candidates = self._elements
-
-        anchor = min(candidates, key=lambda element: (element.x, element.y, element.node_id))
-        partner = min(
-            (element for element in candidates if element is not anchor),
-            key=lambda element: Helper.get_distance(anchor.get_coordinates(), element.get_coordinates())
+    def _fusion_probability(self, score):
+        thermal_drive = (
+            (self.core_temperature / Constants.LIMIT_TEMPERATURE)
+            + 0.30 * self.density
+            + 0.20 * self.pressure
         )
-        return (anchor, partner)
+        activation = (score + 0.40 * thermal_drive) / 0.90
+        return 1.0 / (1.0 + exp(-activation))
 
-    def _start_fusion(self, fusion_candidates) -> bool:
+    def _update_core_state(self, fused: bool, score: float):
+        if fused:
+            self.core_temperature = max(
+                Constants.LIMIT_TEMPERATURE * 0.9,
+                self.core_temperature + 2.0 + 4.0 * max(0.0, score)
+            )
+            self.pressure = min(2.5, self.pressure + 0.08)
+        else:
+            self.core_temperature = max(
+                Constants.LIMIT_TEMPERATURE * 0.7,
+                self.core_temperature * 0.992
+            )
+            self.pressure = max(0.7, self.pressure * 0.996)
+
+        self.density = max(0.2, len(self._elements) / max(1, self._initial_count))
+
+    def _start_fusion(self, fusion_pair) -> bool:
         '''Select the elements using temperature and distance
         '''
-        temperature = Helper.get_temperature(
-            fusion_candidates.candidates, fusion_candidates.avg_distance, len(self._elements))
-        if temperature.element is None:
-            return False
-
-        if temperature.temperature > Constants.LIMIT_TEMPERATURE and random.random() > 0.5:
-            self._fusion(fusion_candidates.element, temperature.element)
+        elem_0, elem_1, score = fusion_pair
+        probability = self._fusion_probability(score)
+        if random.random() <= probability:
+            self._fusion(elem_0, elem_1)
+            self._update_core_state(True, score)
+            self.track_fusion.append((elem_0.node_id, elem_1.node_id, round(score, 4), round(probability, 4)))
             return True
+
+        self._update_core_state(False, score)
         return False
 
     def _get_next_element_type(self, element_type):
@@ -140,7 +237,7 @@ class Star:
         new_element = Element(
             1, mid_point[0], mid_point[1], new_element_type)
         # Id for the new element
-        new_element.node_id = str(id(new_element))
+        new_element.node_id = -(len(self.track_fusion) + 1)
         # Optimal internal structure
         optimize_internal_structure(elem_0, elem_1, self.distance_matrix)
         # Tracking elements
