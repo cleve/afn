@@ -3,7 +3,7 @@ def plot_tsp_solution(base_elements, route: list[str], output_path: str, close_l
     try:
         import matplotlib.pyplot as plt
     except ImportError as error:
-        raise RuntimeError('matplotlib is required for plotting. Install it with: pip install matplotlib') from error
+        raise RuntimeError('matplotlib is required for plotting. Install it with: poetry install -E plot') from error
 
     points_by_node = {
         str(int(node_id)): (x, y)

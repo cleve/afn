@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "afn"
+version = "0.1.0"
+description = "AFN heuristic for the Traveling Salesman Problem"
+authors = []
+readme = "README.md"
+packages = [
+    { include = "afn.py", from = "app" },
+    { include = "core", from = "app" },
+    { include = "utils", from = "app" },
+]
+
+[tool.poetry.scripts]
+afn = "afn:main"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+matplotlib = { version = ">=3.0", optional = true }
+
+[tool.poetry.extras]
+plot = ["matplotlib"]
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.0"
+
+[tool.pytest.ini_options]
+testpaths = ["app/tests"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

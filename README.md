@@ -34,19 +34,30 @@ collapse step and fuses the best-scored pair to avoid stagnation.
 
 After star life ends, the route is improved with a local 2-opt pass.
 
+## Install
+
+```sh
+poetry install
+```
+
+To enable the optional plot feature:
+
+```sh
+poetry install -E plot
+```
+
 ## Run
 
 From the project root:
 
 ```sh
-cd app
-python3 afn.py [tsp_file] [-i ITERATIONS] [-p PROCESSES] [--plot] [--plot-file OUTPUT.png] [--progress]
+poetry run afn [tsp_file] [-i ITERATIONS] [-p PROCESSES] [--plot] [--plot-file OUTPUT.png] [--progress]
 ```
 
 ## CLI arguments
 
 - `tsp_file`: optional positional argument. Path to a TSPLIB `.tsp` file.
-	- Default: `samples/dj38.tsp`
+	- Default: `app/samples/dj38.tsp`
 - `-i`, `--iterations`: optional number of simulation runs.
 	- Default: `500`
 	- Must be greater than `0`
@@ -65,43 +76,37 @@ python3 afn.py [tsp_file] [-i ITERATIONS] [-p PROCESSES] [--plot] [--plot-file O
 Run with defaults:
 
 ```sh
-cd app
-python3 afn.py
+poetry run afn
 ```
 
 Run with a custom iteration count:
 
 ```sh
-cd app
-python3 afn.py --iterations 100
+poetry run afn --iterations 100
 ```
 
 Run with an explicit TSP file and short iteration flag:
 
 ```sh
-cd app
-python3 afn.py samples/dj38.tsp -i 250
+poetry run afn app/samples/dj38.tsp -i 250
 ```
 
 Run with multiple processes:
 
 ```sh
-cd app
-python3 afn.py samples/dj38.tsp -i 1000 -p 4
+poetry run afn app/samples/dj38.tsp -i 1000 -p 4
 ```
 
 Run and generate a plot image:
 
 ```sh
-cd app
-python3 afn.py samples/dj38.tsp -i 300 -p 4 --plot --plot-file dj38_solution.png
+poetry run afn app/samples/dj38.tsp -i 300 -p 4 --plot --plot-file dj38_solution.png
 ```
 
 Run with a progress bar:
 
 ```sh
-cd app
-python3 afn.py samples/dj38.tsp -i 500 -p 4 --progress
+poetry run afn app/samples/dj38.tsp -i 500 -p 4 --progress
 ```
 
 ## Output format
