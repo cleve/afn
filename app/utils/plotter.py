@@ -85,7 +85,7 @@ def animate_fusion_process(base_elements, fusion_events, delay_seconds: float = 
     all_x = [item[1] for item in base_elements]
     all_y = [item[2] for item in base_elements]
 
-    figure, (axis_map, axis_state) = plt.subplots(1, 2, figsize=(14, 6))
+    figure, (axis_map, axis_state, axis_elements) = plt.subplots(1, 3, figsize=(20, 6))
 
     active_original_points, = axis_map.plot(
         all_x,
@@ -139,6 +139,7 @@ def animate_fusion_process(base_elements, fusion_events, delay_seconds: float = 
     if not fusion_events:
         axis_map.text(0.5, 0.5, 'No fusion events available', transform=axis_map.transAxes, ha='center', va='center')
         axis_state.set_axis_off()
+        axis_elements.set_axis_off()
         figure.tight_layout()
         plt.show(block=True)
         return
@@ -147,17 +148,14 @@ def animate_fusion_process(base_elements, fusion_events, delay_seconds: float = 
     temperatures = [event['temperature'] for event in fusion_events]
     pressures = [event['pressure'] for event in fusion_events]
     densities = [event['density'] for event in fusion_events]
-    element_counts = [event['elements_count'] for event in fusion_events]
 
     line_temp, = axis_state.plot([], [], color='#d62728', label='Temperature', linewidth=2)
     line_pressure, = axis_state.plot([], [], color='#2ca02c', label='Pressure', linewidth=2)
     line_density, = axis_state.plot([], [], color='#ff7f0e', label='Density', linewidth=2)
-    line_count, = axis_state.plot([], [], color='#1f77b4', label='Elements', linewidth=2)
 
     marker_temp, = axis_state.plot([], [], marker='o', color='#d62728')
     marker_pressure, = axis_state.plot([], [], marker='o', color='#2ca02c')
     marker_density, = axis_state.plot([], [], marker='o', color='#ff7f0e')
-    marker_count, = axis_state.plot([], [], marker='o', color='#1f77b4')
 
     axis_state.set_title('Star life evolution by fusion event')
     axis_state.set_xlabel('Fusion event')
@@ -169,10 +167,36 @@ def animate_fusion_process(base_elements, fusion_events, delay_seconds: float = 
         max(temperatures) if temperatures else 0,
         max(pressures) if pressures else 0,
         max(densities) if densities else 0,
-        max(element_counts) if element_counts else 0,
     )
     axis_state.set_xlim(1, max(2, len(steps)))
     axis_state.set_ylim(0, max_y * 1.15 if max_y > 0 else 1.0)
+
+    # --- Element type evolution panel ---
+    h_counts  = [e['type_counts'].get('HIDROGEN', 0) for e in fusion_events]
+    he_counts = [e['type_counts'].get('HELIUM',   0) for e in fusion_events]
+    c_counts  = [e['type_counts'].get('CARBON',   0) for e in fusion_events]
+
+    line_h,  = axis_elements.plot([], [], color='#00b4d8', linewidth=2, label='Hydrogen (H)')
+    line_he, = axis_elements.plot([], [], color='#f4a261', linewidth=2, label='Helium (He)')
+    line_c,  = axis_elements.plot([], [], color='#e63946', linewidth=2, label='Carbon (C)')
+    marker_h,  = axis_elements.plot([], [], marker='o', color='#00b4d8', markersize=6)
+    marker_he, = axis_elements.plot([], [], marker='o', color='#f4a261', markersize=6)
+    marker_c,  = axis_elements.plot([], [], marker='o', color='#e63946', markersize=6)
+
+    axis_elements.set_title('Element type evolution')
+    axis_elements.set_xlabel('Fusion event')
+    axis_elements.set_ylabel('Count')
+    axis_elements.set_xlim(1, max(2, len(steps)))
+    axis_elements.set_ylim(0, max(len(fusion_events), 1) * 1.15)
+    axis_elements.grid(True, alpha=0.2)
+    axis_elements.legend(loc='upper right')
+
+    type_didactic = axis_elements.text(
+        0.02, 0.02, '',
+        transform=axis_elements.transAxes,
+        va='bottom', ha='left', fontsize=9,
+        bbox={'boxstyle': 'round', 'facecolor': 'white', 'alpha': 0.75}
+    )
 
     current_pair_line, = axis_map.plot([], [], color='#d62728', linewidth=2.5, alpha=0.9, zorder=4)
     compress_left_line, = axis_map.plot([], [], color='#ff7f0e', linewidth=1.8, linestyle='--', alpha=0.9, zorder=4)
@@ -282,18 +306,37 @@ def animate_fusion_process(base_elements, fusion_events, delay_seconds: float = 
         line_temp.set_data(current_steps, temperatures[:completed_events])
         line_pressure.set_data(current_steps, pressures[:completed_events])
         line_density.set_data(current_steps, densities[:completed_events])
-        line_count.set_data(current_steps, element_counts[:completed_events])
-
         if current_steps:
             marker_temp.set_data([current_steps[-1]], [temperatures[completed_events - 1]])
             marker_pressure.set_data([current_steps[-1]], [pressures[completed_events - 1]])
             marker_density.set_data([current_steps[-1]], [densities[completed_events - 1]])
-            marker_count.set_data([current_steps[-1]], [element_counts[completed_events - 1]])
         else:
             marker_temp.set_data([], [])
             marker_pressure.set_data([], [])
             marker_density.set_data([], [])
-            marker_count.set_data([], [])
+
+        # Element type panel
+        line_h.set_data(current_steps, h_counts[:completed_events])
+        line_he.set_data(current_steps, he_counts[:completed_events])
+        line_c.set_data(current_steps, c_counts[:completed_events])
+        if current_steps:
+            marker_h.set_data([current_steps[-1]],  [h_counts[completed_events - 1]])
+            marker_he.set_data([current_steps[-1]], [he_counts[completed_events - 1]])
+            marker_c.set_data([current_steps[-1]],  [c_counts[completed_events - 1]])
+        else:
+            marker_h.set_data([], [])
+            marker_he.set_data([], [])
+            marker_c.set_data([], [])
+        if completed_events > 0:
+            ev = fusion_events[completed_events - 1]
+            tc = ev['type_counts']
+            type_didactic.set_text(
+                f"H: {tc.get('HIDROGEN', 0)}  "
+                f"He: {tc.get('HELIUM', 0)}  "
+                f"C: {tc.get('CARBON', 0)}"
+            )
+        else:
+            type_didactic.set_text('')
 
         forced_label = 'yes' if event.get('forced') else 'no'
         info_box.set_text(
@@ -326,13 +369,18 @@ def animate_fusion_process(base_elements, fusion_events, delay_seconds: float = 
             line_temp,
             line_pressure,
             line_density,
-            line_count,
             marker_temp,
             marker_pressure,
             marker_density,
-            marker_count,
             info_box,
             didactic_box,
+            line_h,
+            line_he,
+            line_c,
+            marker_h,
+            marker_he,
+            marker_c,
+            type_didactic,
         )
 
     animation = FuncAnimation(

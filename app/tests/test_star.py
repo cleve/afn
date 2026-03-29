@@ -98,6 +98,41 @@ class TestStarMethods(unittest.TestCase):
         self.assertGreaterEqual(probability, 0.0)
         self.assertLessEqual(probability, 1.0)
 
+    def test_pressure_stays_within_bounds_after_state_updates(self):
+        random.seed(7)
+        base_elements = [(index, float(index), 0.0) for index in range(1, 6)]
+        distance_matrix = [
+            [abs(ii - jj) for jj in range(5)]
+            for ii in range(5)
+        ]
+        star = Star(base_elements, distance_matrix)
+
+        for _ in range(30):
+            star._update_core_state(True, 0.5)
+            self.assertGreaterEqual(star.pressure, 0.7)
+            self.assertLessEqual(star.pressure, 2.5)
+
+        for _ in range(30):
+            star._update_core_state(False, 0.0)
+            self.assertGreaterEqual(star.pressure, 0.7)
+            self.assertLessEqual(star.pressure, 2.5)
+
+    def test_pressure_increases_on_average_with_temperature(self):
+        """After repeated successful fusions (rising T), mean pressure should grow."""
+        random.seed(0)
+        base_elements = [(index, float(index), 0.0) for index in range(1, 6)]
+        distance_matrix = [
+            [abs(ii - jj) for jj in range(5)]
+            for ii in range(5)
+        ]
+        star = Star(base_elements, distance_matrix)
+        initial_pressure = star.pressure
+
+        for _ in range(40):
+            star._update_core_state(True, 1.0)
+
+        self.assertGreater(star.pressure, initial_pressure)
+
     def test_fusion_weights_override_partial(self):
         base_elements = [(index, float(index), 0.0) for index in range(1, 5)]
         distance_matrix = [

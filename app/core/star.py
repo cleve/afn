@@ -101,6 +101,9 @@ class Star:
             idle_cycles = 0
 
     def _build_fusion_event(self, step, elem_0, elem_1, profile, probability, midpoint, forced=False):
+        type_counts = {t.name: 0 for t in ElementType}
+        for elem in self._elements:
+            type_counts[elem.element_type.name] += 1
         return {
             'step': step,
             'left_id': str(elem_0.node_id),
@@ -115,6 +118,7 @@ class Star:
             'density': float(self.density),
             'pressure': float(self.pressure),
             'elements_count': len(self._elements),
+            'type_counts': type_counts,
         }
 
     def _get_pair_candidates(self):
@@ -289,23 +293,44 @@ class Star:
         return max(0.0, min(1.0, probability))
 
     def _update_core_state(self, fused: bool, score: float):
+        prev_temperature = self.core_temperature
+
         if fused:
             self.core_temperature = max(
                 Constants.LIMIT_TEMPERATURE * 0.9,
                 self.core_temperature + 2.0 + 4.0 * max(0.0, score)
             )
-            self.pressure = min(2.5, self.pressure + 0.08)
         else:
             self.core_temperature = max(
                 Constants.LIMIT_TEMPERATURE * 0.7,
                 self.core_temperature * 0.992
             )
-            self.pressure = max(0.7, self.pressure * 0.996)
 
+        # Update density first — pressure coupling uses the current density.
         self.density = max(0.2, len(self._elements) / max(1, self._initial_count))
+        self._update_pressure(prev_temperature)
+
         # Decay local heat each cycle
         for elem in self._elements:
             elem.local_heat = max(0.0, elem.local_heat * 0.80)
+
+    def _update_pressure(self, prev_temperature: float):
+        """Update pressure probabilistically, coupling temperature change to pressure
+        through the current density.
+
+        Physics rationale (ideal-gas analogy): P ∝ ρT.
+        - A higher density amplifies how much a temperature rise drives up pressure.
+        - A lower density decouples them, so pressure changes are weaker and noisier.
+        - Gaussian turbulent noise widens proportionally with density, reflecting
+          that denser plasma transmits energy more turbulently.
+        """
+        temp_ratio = self.core_temperature / max(prev_temperature, 1e-9)
+        # coupling ∈ [0.68, 1.0]: denser star → stronger T→P link
+        coupling = 0.6 + 0.4 * self.density
+        expected = self.pressure * (coupling * temp_ratio + (1.0 - coupling))
+        # Turbulent noise: wider spread in denser plasma
+        sigma = 0.03 + 0.06 * self.density
+        self.pressure = max(0.7, min(2.5, expected + random.gauss(0.0, sigma)))
 
     def _start_fusion(self, fusion_pair, step):
         '''Select the elements using temperature and distance
