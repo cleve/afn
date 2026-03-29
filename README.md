@@ -52,7 +52,35 @@ From the project root:
 
 ```sh
 poetry run afn [tsp_file] [-i ITERATIONS] [-p PROCESSES] [--plot] [--plot-file OUTPUT.png] [--progress]
+
+# Educative mode
+poetry run afn [tsp_file] --educative [--educative-delay SECONDS] [--educative-record OUTPUT.gif|OUTPUT.mp4]
 ```
+
+### Educative mode behavior
+
+Educative mode is designed for step-by-step visualization and teaching:
+
+- It always forces one iteration and one process.
+- It animates each fusion event in three phases:
+	- Selection: candidate pair is highlighted.
+	- Compression: both elements move conceptually toward the fusion site.
+	- Fusion: merged site is marked and star-state charts are updated.
+- It shows two synchronized panels:
+	- Spatial fusion process (nodes and fusion points).
+	- Star life evolution (temperature, pressure, density, element count).
+
+Input file resolution is flexible for convenience:
+
+- Uses path as provided when it exists.
+- Falls back to `app/<tsp_file>`.
+- Falls back to `app/samples/<filename>`.
+
+This means commands such as `poetry run afn dj38.tsp --educative` work from the project root.
+
+When matplotlib runs in a non-interactive backend (for example, `Agg` in headless environments),
+the app cannot open a live window. In that case, educative mode automatically records a GIF named
+`educative_fusion.gif` unless `--educative-record` is explicitly provided.
 
 ## CLI arguments
 
@@ -70,6 +98,15 @@ poetry run afn [tsp_file] [-i ITERATIONS] [-p PROCESSES] [--plot] [--plot-file O
 	- Default: `solution.png`
 - `--progress`: show a live progress bar with completion percent.
 	- Default: disabled
+- `--educative`: run a visual educational mode with animated fusion steps.
+	- Forces exactly one iteration and one process
+	- Opens a live graphic window showing fusion process and star-state evolution
+    - In non-interactive backends, records a GIF automatically instead of opening a window
+- `--educative-delay`: seconds between educational animation frames.
+	- Default: `1.0`
+	- Must be greater than `0`
+- `--educative-record`: optional output animation file path in educational mode.
+	- Supports formats allowed by matplotlib writers, such as `.gif` or `.mp4`
 
 ## Examples
 
@@ -109,6 +146,18 @@ Run with a progress bar:
 poetry run afn app/samples/dj38.tsp -i 500 -p 4 --progress
 ```
 
+Run educational mode (one forced iteration):
+
+```sh
+poetry run afn app/samples/dj38.tsp --educative --educative-delay 1.2
+```
+
+Run educational mode and record the animation:
+
+```sh
+poetry run afn app/samples/dj38.tsp --educative --educative-record fusion.gif
+```
+
 ## Output format
 
 The program prints:
@@ -120,3 +169,5 @@ The program prints:
 - Elapsed execution time
 - Best route sequence
 - Plot file path (when plotting is enabled)
+- Fusion event count (in educative mode)
+- Animation recording path (when recording is enabled or auto-fallback is used)

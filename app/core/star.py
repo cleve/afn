@@ -16,21 +16,33 @@ class Star:
         Fusion distance: 1x10-15m
     """
 
-    def __init__(self, base_elements, distance_matrix):
+    DEFAULT_FUSION_WEIGHTS = {
+        'score': 0.50,
+        'distance': 0.20,
+        'barrier': 0.20,
+        'route_gain': 0.10,
+    }
+
+    def __init__(self, base_elements, distance_matrix, fusion_weights: dict | None = None):
         """Star init
 
         Args:
             base_elements (list): [node_number, x, y]
             distance_matrix (list): matrix repr
+            fusion_weights (dict | None): optional overrides for fusion-probability weights.
+                Keys: 'score', 'distance', 'barrier', 'route_gain'.
+                Missing keys fall back to DEFAULT_FUSION_WEIGHTS.
         """
         self.name = 'sun'
         self.distance_matrix = distance_matrix
         self.track_fusion = []
+        self.fusion_events = []
         self._elements = []
         self._initial_count = len(base_elements)
         self.core_temperature = Constants.LIMIT_TEMPERATURE * 1.05
         self.density = 1.0
         self.pressure = 1.0
+        self._fusion_weights = {**self.DEFAULT_FUSION_WEIGHTS, **(fusion_weights or {})}
         self._ignition(base_elements)
 
     @property
@@ -42,15 +54,18 @@ class Star:
         '''
         idle_cycles = 0
         max_idle_cycles = max(10, len(self._elements) * 2)
+        step = 0
 
         while len(self._elements) > 2:
+            step += 1
             fusion_pair = self._select_pair_for_fusion()
             if fusion_pair is None:
                 break
 
-            fused = self._start_fusion(fusion_pair)
+            fusion_event = self._start_fusion(fusion_pair, step)
 
-            if fused:
+            if fusion_event is not None:
+                self.fusion_events.append(fusion_event)
                 idle_cycles = 0
                 continue
 
@@ -64,9 +79,43 @@ class Star:
             if fallback_pair is None:
                 break
 
-            self._fusion(fallback_pair[0], fallback_pair[1])
+            fallback_midpoint = self._fusion(fallback_pair[0], fallback_pair[1])
             self._update_core_state(True, fallback_pair[2]['score'])
+            self.track_fusion.append((
+                fallback_pair[0].node_id,
+                fallback_pair[1].node_id,
+                round(fallback_pair[2]['score'], 4),
+                1.0
+            ))
+            self.fusion_events.append(
+                self._build_fusion_event(
+                    step=step,
+                    elem_0=fallback_pair[0],
+                    elem_1=fallback_pair[1],
+                    profile=fallback_pair[2],
+                    probability=1.0,
+                    midpoint=fallback_midpoint,
+                    forced=True
+                )
+            )
             idle_cycles = 0
+
+    def _build_fusion_event(self, step, elem_0, elem_1, profile, probability, midpoint, forced=False):
+        return {
+            'step': step,
+            'left_id': str(elem_0.node_id),
+            'right_id': str(elem_1.node_id),
+            'left_pos': elem_0.get_coordinates(),
+            'right_pos': elem_1.get_coordinates(),
+            'midpoint': midpoint,
+            'score': float(profile.get('score', 0.0)),
+            'probability': float(probability),
+            'forced': forced,
+            'temperature': float(self.core_temperature),
+            'density': float(self.density),
+            'pressure': float(self.pressure),
+            'elements_count': len(self._elements),
+        }
 
     def _get_pair_candidates(self):
         if len(self._elements) < 2:
@@ -230,11 +279,12 @@ class Star:
         distance_probability = exp(-distance / (avg_distance + 1e-9))
         barrier_probability = exp(-barrier / max(0.25, thermal_drive))
 
+        w = self._fusion_weights
         probability = (
-            0.50 * score_probability
-            + 0.20 * distance_probability
-            + 0.20 * barrier_probability
-            + 0.10 * route_gain
+            w['score'] * score_probability
+            + w['distance'] * distance_probability
+            + w['barrier'] * barrier_probability
+            + w['route_gain'] * route_gain
         )
         return max(0.0, min(1.0, probability))
 
@@ -257,13 +307,13 @@ class Star:
         for elem in self._elements:
             elem.local_heat = max(0.0, elem.local_heat * 0.80)
 
-    def _start_fusion(self, fusion_pair) -> bool:
+    def _start_fusion(self, fusion_pair, step):
         '''Select the elements using temperature and distance
         '''
         elem_0, elem_1, profile = fusion_pair
         probability = self._fusion_probability(profile)
         if random.random() <= probability:
-            self._fusion(elem_0, elem_1)
+            fusion_midpoint = self._fusion(elem_0, elem_1)
             self._update_core_state(True, profile['score'])
             self.track_fusion.append((
                 elem_0.node_id,
@@ -271,10 +321,18 @@ class Star:
                 round(profile['score'], 4),
                 round(probability, 4)
             ))
-            return True
+            return self._build_fusion_event(
+                step=step,
+                elem_0=elem_0,
+                elem_1=elem_1,
+                profile=profile,
+                probability=probability,
+                midpoint=fusion_midpoint,
+                forced=False
+            )
 
         self._update_core_state(False, profile['score'])
-        return False
+        return None
 
     def _get_next_element_type(self, element_type):
         '''Get next type of element after fusion
@@ -325,6 +383,7 @@ class Star:
         self._elements.append(new_element)
         # Heat wave from the fusion site
         self._propagate_fusion_heat(mid_point[0], mid_point[1], energy=0.30)
+        return mid_point
 
     def _ignition(self, base_elements):
         '''Elements creation, at the begining every element

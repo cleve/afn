@@ -98,6 +98,21 @@ class TestStarMethods(unittest.TestCase):
         self.assertGreaterEqual(probability, 0.0)
         self.assertLessEqual(probability, 1.0)
 
+    def test_fusion_weights_override_partial(self):
+        base_elements = [(index, float(index), 0.0) for index in range(1, 5)]
+        distance_matrix = [
+            [abs(ii - jj) for jj in range(len(base_elements))]
+            for ii in range(len(base_elements))
+        ]
+        custom_weights = {'score': 0.80, 'route_gain': 0.20}
+        star = Star(base_elements, distance_matrix, fusion_weights=custom_weights)
+
+        self.assertEqual(star._fusion_weights['score'], 0.80)
+        self.assertEqual(star._fusion_weights['route_gain'], 0.20)
+        # Unspecified keys should use defaults.
+        self.assertEqual(star._fusion_weights['distance'], 0.20)
+        self.assertEqual(star._fusion_weights['barrier'], 0.20)
+
 
 if __name__ == '__main__':
     unittest.main()
