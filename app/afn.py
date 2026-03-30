@@ -1,8 +1,15 @@
 import argparse
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
+import random
 import sys
 from time import perf_counter
+
+try:
+    __version__ = version('afn')
+except PackageNotFoundError:
+    __version__ = 'unknown'
 
 from utils.stream import Reader
 from utils.plotter import plot_tsp_solution, animate_fusion_process
@@ -36,6 +43,11 @@ def _resolve_tsp_file_path(tsp_file: str) -> str:
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         description='Solve a TSP instance with the AFN star-fusion heuristic.'
+    )
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=f'%(prog)s {__version__}',
     )
     parser.add_argument(
         'tsp_file',
@@ -154,7 +166,8 @@ def _run_batch(batch_iterations: int, base_elements, distance_matrix, expected_n
     best_route = []
 
     for _ in range(batch_iterations):
-        star = Star(base_elements, distance_matrix, fusion_weights=fusion_weights)
+        massive = random.random() < 0.30  # ~30 % of stars are massive (shorter life, smaller neighbourhood)
+        star = Star(base_elements, distance_matrix, fusion_weights=fusion_weights, massive=massive)
         star.life()
         route = build_best_route(star.elements, distance_matrix)
         if not _is_hamiltonian_route(route, expected_nodes):

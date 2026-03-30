@@ -23,7 +23,7 @@ class Star:
         'route_gain': 0.10,
     }
 
-    def __init__(self, base_elements, distance_matrix, fusion_weights: dict | None = None):
+    def __init__(self, base_elements, distance_matrix, fusion_weights: dict | None = None, massive: bool = False):
         """Star init
 
         Args:
@@ -32,8 +32,13 @@ class Star:
             fusion_weights (dict | None): optional overrides for fusion-probability weights.
                 Keys: 'score', 'distance', 'barrier', 'route_gain'.
                 Missing keys fall back to DEFAULT_FUSION_WEIGHTS.
+            massive (bool): when True the star has a shorter life and evaluates a smaller
+                neighbourhood of fusion candidates per step (faster iterations). When False
+                the star lives longer and explores a wider neighbourhood (more thorough
+                search). Defaults to False.
         """
         self.name = 'sun'
+        self.massive = massive
         self.distance_matrix = distance_matrix
         self.track_fusion = []
         self.fusion_events = []
@@ -53,7 +58,10 @@ class Star:
         '''Start star life
         '''
         idle_cycles = 0
-        max_idle_cycles = max(10, len(self._elements) * 2)
+        if self.massive:
+            max_idle_cycles = max(5, len(self._elements))
+        else:
+            max_idle_cycles = max(10, len(self._elements) * 2)
         step = 0
 
         while len(self._elements) > 2:
@@ -121,13 +129,47 @@ class Star:
             'type_counts': type_counts,
         }
 
+    def _neighborhood_k(self) -> int:
+        """Number of nearest neighbours each element considers for fusion candidates.
+
+        Massive stars use a smaller neighbourhood for faster (less thorough) iterations.
+        Non-massive stars use a larger neighbourhood for more exploratory search.
+        """
+        n = len(self._elements)
+        if self.massive:
+            return max(3, int(n * 0.25))
+        return max(5, int(n * 0.60))
+
     def _get_pair_candidates(self):
         if len(self._elements) < 2:
             return []
 
-        pairs = []
+        n = len(self._elements)
+        k = self._neighborhood_k()
         avg_pair_distance = self._average_pair_distance()
-        for left, right in combinations(self._elements, 2):
+
+        if k >= n - 1:
+            element_pairs = list(combinations(self._elements, 2))
+        else:
+            seen: set = set()
+            element_pairs = []
+            for i, elem in enumerate(self._elements):
+                neighbors = sorted(
+                    (
+                        (j, Helper.get_distance(elem.get_coordinates(), self._elements[j].get_coordinates()))
+                        for j in range(n) if j != i
+                    ),
+                    key=lambda x: x[1],
+                )[:k]
+                for j, _ in neighbors:
+                    key = (min(i, j), max(i, j))
+                    if key not in seen:
+                        seen.add(key)
+                        lo, hi = (i, j) if i < j else (j, i)
+                        element_pairs.append((self._elements[lo], self._elements[hi]))
+
+        pairs = []
+        for left, right in element_pairs:
             distance = Helper.get_distance(left.get_coordinates(), right.get_coordinates())
             barrier = self._fusion_barrier(left, right)
             route_gain = self._route_gain(left, right)

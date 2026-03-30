@@ -34,6 +34,27 @@ collapse step and fuses the best-scored pair to avoid stagnation.
 
 After star life ends, the route is improved with a local 2-opt pass.
 
+## Star mass
+
+Each star simulation is independently assigned a **mass class** that controls
+the trade-off between speed and exploration depth.
+
+| Property | Massive star (~30 % of runs) | Non-massive star (~70 % of runs) |
+|---|---|---|
+| Life length | Shorter (`max(5, n)` idle cycles) | Longer (`max(10, 2n)` idle cycles) |
+| Fusion neighbourhood | Nearest 25 % of elements | Nearest 60 % of elements |
+| Candidate pairs per step | Small, focused | Wide, exploratory |
+| Speed | Faster iterations | Slower iterations |
+
+**Neighbourhood selection** avoids evaluating all O(n²) element pairs on every
+step. Instead, each element considers only its K nearest neighbours (by
+euclidean coordinate distance), reducing the per-step cost to O(n·K). When K
+reaches n − 1 (small instances), it falls back automatically to all pairs.
+
+The mixed ensemble of massive and non-massive stars gives the overall
+iteration budget both fast shallow runs and slower deeper runs, improving
+solution quality without a uniform cost increase.
+
 ## Install
 
 ```sh

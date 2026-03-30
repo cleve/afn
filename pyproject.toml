@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "afn"
-version = "0.1.0"
+version = "1.0.0"
 description = "AFN heuristic for the Traveling Salesman Problem"
-authors = []
+authors = ["mauricio.cleveland@gmail.com"]
 readme = "README.md"
 packages = [
     { include = "afn.py", from = "app" },
