@@ -2,7 +2,7 @@
 name = "afn"
 version = "1.0.0"
 description = "AFN heuristic for the Traveling Salesman Problem"
-authors = ["mauricio.cleveland@gmail.com"]
+authors = ["Mauricio Cleveland <mauricio.cleveland@gmail.com>"]
 readme = "README.md"
 packages = [
     { include = "afn.py", from = "app" },
@@ -15,10 +15,8 @@ afn = "afn:main"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-matplotlib = { version = ">=3.0", optional = true }
+matplotlib = ">=3.0"
 
-[tool.poetry.extras]
-plot = ["matplotlib"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.0"
