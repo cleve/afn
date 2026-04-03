@@ -294,12 +294,21 @@ class Star:
     def _stochastic_noise(self, scale=0.05):
         return random.uniform(-scale, scale)
 
+    @staticmethod
+    def _sigmoid(value: float) -> float:
+        """Numerically stable logistic function."""
+        if value >= 0.0:
+            z = exp(-value)
+            return 1.0 / (1.0 + z)
+        z = exp(value)
+        return z / (1.0 + z)
+
     def _collapse_probability(self, idle_cycles: int, max_idle_cycles: int):
         idle_ratio = idle_cycles / max(1, max_idle_cycles)
         thermal_ratio = self.core_temperature / Constants.LIMIT_TEMPERATURE
         pressure_ratio = self.pressure / 2.5
         activation = 2.6 * idle_ratio + 0.25 * pressure_ratio - 0.15 * thermal_ratio
-        return 1.0 / (1.0 + exp(-activation))
+        return self._sigmoid(activation)
 
     def _fusion_probability(self, profile):
         if isinstance(profile, dict):
@@ -321,7 +330,7 @@ class Star:
             + 0.20 * self.pressure
         )
 
-        score_probability = 1.0 / (1.0 + exp(-((score + 0.40 * thermal_drive) / 0.90)))
+        score_probability = self._sigmoid((score + 0.40 * thermal_drive) / 0.90)
         distance_probability = exp(-distance / (avg_distance + 1e-9))
         barrier_probability = exp(-barrier / max(0.25, thermal_drive))
 

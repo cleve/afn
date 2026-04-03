@@ -98,6 +98,40 @@ class TestStarMethods(unittest.TestCase):
         self.assertGreaterEqual(probability, 0.0)
         self.assertLessEqual(probability, 1.0)
 
+    def test_collapse_probability_handles_extreme_negative_activation(self):
+        base_elements = [(index, float(index), 0.0) for index in range(1, 6)]
+        distance_matrix = [
+            [abs(ii - jj) for jj in range(len(base_elements))]
+            for ii in range(len(base_elements))
+        ]
+        star = Star(base_elements, distance_matrix)
+
+        star.core_temperature = 5_000.0
+        star.pressure = 0.7
+        probability = star._collapse_probability(idle_cycles=0, max_idle_cycles=1)
+
+        self.assertGreaterEqual(probability, 0.0)
+        self.assertLessEqual(probability, 1.0)
+
+    def test_fusion_probability_handles_extreme_negative_score(self):
+        base_elements = [(index, float(index), 0.0) for index in range(1, 6)]
+        distance_matrix = [
+            [abs(ii - jj) for jj in range(len(base_elements))]
+            for ii in range(len(base_elements))
+        ]
+        star = Star(base_elements, distance_matrix)
+
+        probability = star._fusion_probability({
+            'score': -50_000.0,
+            'distance': 1.0,
+            'avg_distance': 1.0,
+            'barrier': 0.7,
+            'route_gain': 0.0,
+        })
+
+        self.assertGreaterEqual(probability, 0.0)
+        self.assertLessEqual(probability, 1.0)
+
     def test_pressure_stays_within_bounds_after_state_updates(self):
         random.seed(7)
         base_elements = [(index, float(index), 0.0) for index in range(1, 6)]
