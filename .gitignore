@@ -127,9 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
 # Temporal output files (solutions and animations)
 solution.png
 *_solution.png
-educative_fusion.gif
+educative_fusion.gifzz
 *.gif
