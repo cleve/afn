@@ -237,6 +237,14 @@ def _format_route(route: list[str], chunk_size: int = 8) -> str:
     return '\n'.join(chunks)
 
 
+def _format_elapsed(elapsed: float) -> str:
+    if elapsed >= 60:
+        minutes = int(elapsed // 60)
+        seconds = elapsed - minutes * 60
+        return f'{minutes}m {seconds:05.2f}s'
+    return f'{elapsed:.3f} s'
+
+
 def _print_result(tsp_file: str, iterations: int, processes: int, best_length: int, elapsed: float, best_route: list[str], plot_file: str | None = None):
     _print_banner()
     _print_section('Configuration')
@@ -245,7 +253,7 @@ def _print_result(tsp_file: str, iterations: int, processes: int, best_length: i
     _print_row('Processes', str(processes))
     _print_section('Result')
     _print_row('Tour length', f'{best_length:,}', highlight=True)
-    _print_row('Elapsed', f'{elapsed:.3f} s')
+    _print_row('Elapsed', _format_elapsed(elapsed))
     if plot_file is not None:
         _print_row('Plot', plot_file)
     _print_section('Route')
@@ -263,7 +271,7 @@ def _print_educative_result(tsp_file: str, best_length: int, elapsed: float, bes
     _print_section('Result')
     _print_row('Tour length', f'{best_length:,}', highlight=True)
     _print_row('Fusion events', str(fusion_events_count))
-    _print_row('Elapsed', f'{elapsed:.3f} s')
+    _print_row('Elapsed', _format_elapsed(elapsed))
     if record_file:
         _print_row('Animation', record_file)
     _print_section('Route')
