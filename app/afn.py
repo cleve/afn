@@ -1,9 +1,8 @@
-import argparse
+import click
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
 import random
-import sys
 from time import perf_counter
 
 try:
@@ -40,116 +39,21 @@ def _resolve_tsp_file_path(tsp_file: str) -> str:
     return tsp_file
 
 
-def parse_args(argv=None):
-    parser = argparse.ArgumentParser(
-        description='Solve a TSP instance with the AFN star-fusion heuristic.'
-    )
-    parser.add_argument(
-        '--version',
-        action='version',
-        version=f'%(prog)s {__version__}',
-    )
-    parser.add_argument(
-        'tsp_file',
-        nargs='?',
-        default=DEFAULT_TSP_FILE,
-        help='Path to a TSPLIB .tsp file (default: %(default)s).'
-    )
-    parser.add_argument(
-        '-i',
-        '--iterations',
-        type=int,
-        default=ITERATIONS,
-        help='Number of star simulation runs (default: %(default)s).'
-    )
-    parser.add_argument(
-        '-p',
-        '--processes',
-        type=int,
-        default=1,
-        help='Number of worker processes for simulation batches (default: %(default)s).'
-    )
-    parser.add_argument(
-        '--plot',
-        action='store_true',
-        help='Generate a PNG plot with the proposed TSP cycle.'
-    )
-    parser.add_argument(
-        '--plot-file',
-        default='solution.png',
-        help='Output image path when --plot is enabled (default: %(default)s).'
-    )
-    parser.add_argument(
-        '--progress',
-        action='store_true',
-        help='Show a progress bar with completion percentage.'
-    )
-    parser.add_argument(
-        '--educative',
-        action='store_true',
-        help='Run educational mode with a live fusion animation (forces one iteration and one process).'
-    )
-    parser.add_argument(
-        '--educative-delay',
-        type=float,
-        default=1.0,
-        help='Seconds between educational animation frames (default: %(default)s).'
-    )
-    parser.add_argument(
-        '--educative-record',
-        default=None,
-        help='Optional animation output file (.gif or .mp4) in educational mode.'
-    )
-    parser.add_argument(
-        '--fusion-score-weight',
-        type=float,
-        default=None,
-        help='Weight for the score term in the fusion probability formula (default: 0.50).'
-    )
-    parser.add_argument(
-        '--fusion-distance-weight',
-        type=float,
-        default=None,
-        help='Weight for the distance term in the fusion probability formula (default: 0.20).'
-    )
-    parser.add_argument(
-        '--fusion-barrier-weight',
-        type=float,
-        default=None,
-        help='Weight for the barrier term in the fusion probability formula (default: 0.20).'
-    )
-    parser.add_argument(
-        '--fusion-gain-weight',
-        type=float,
-        default=None,
-        help='Weight for the route-gain term in the fusion probability formula (default: 0.10).'
-    )
-
-    args = parser.parse_args(argv)
-    if args.iterations < 1:
-        parser.error('iterations must be greater than 0')
-    if args.processes < 1:
-        parser.error('processes must be greater than 0')
-    if args.educative_delay <= 0:
-        parser.error('educative-delay must be greater than 0')
-    if args.educative_record and not args.educative:
-        parser.error('educative-record requires --educative')
-    if args.educative:
-        args.iterations = 1
-        args.processes = 1
-    return args
-
-
-def _build_fusion_weights(args) -> dict | None:
+def _build_fusion_weights(
+    fusion_score_weight=None,
+    fusion_distance_weight=None,
+    fusion_barrier_weight=None,
+    fusion_gain_weight=None,
+) -> dict | None:
     overrides = {}
-    if args.fusion_score_weight is not None:
-        overrides['score'] = args.fusion_score_weight
-    if args.fusion_distance_weight is not None:
-        overrides['distance'] = args.fusion_distance_weight
-    if args.fusion_barrier_weight is not None:
-        overrides['barrier'] = args.fusion_barrier_weight
-    if args.fusion_gain_weight is not None:
-        overrides['route_gain'] = args.fusion_gain_weight
+    if fusion_score_weight is not None:
+        overrides['score'] = fusion_score_weight
+    if fusion_distance_weight is not None:
+        overrides['distance'] = fusion_distance_weight
+    if fusion_barrier_weight is not None:
+        overrides['barrier'] = fusion_barrier_weight
+    if fusion_gain_weight is not None:
+        overrides['route_gain'] = fusion_gain_weight
     return overrides if overrides else None
 
 
@@ -161,13 +65,13 @@ def _is_hamiltonian_route(route: list[str], expected_nodes: set[str]) -> bool:
     return set(route) == expected_nodes
 
 
-def _run_batch(batch_iterations: int, base_elements, distance_matrix, expected_nodes, fusion_weights: dict | None = None):
+def _run_batch(batch_iterations: int, base_elements, distance_matrix, expected_nodes, fusion_weights: dict | None = None, massive: bool | None = None):
     best_length = inf
     best_route = []
 
     for _ in range(batch_iterations):
-        massive = random.random() < 0.30  # ~30 % of stars are massive (shorter life, smaller neighbourhood)
-        star = Star(base_elements, distance_matrix, fusion_weights=fusion_weights, massive=massive)
+        use_massive = massive if massive is not None else random.random() < 0.30
+        star = Star(base_elements, distance_matrix, fusion_weights=fusion_weights, massive=use_massive)
         star.life()
         route = build_best_route(star.elements, distance_matrix)
         if not _is_hamiltonian_route(route, expected_nodes):
@@ -183,20 +87,33 @@ def _run_batch(batch_iterations: int, base_elements, distance_matrix, expected_n
     return best_route, best_length
 
 
-def _print_progress(completed: int, total: int, prefix: str = 'Progress', width: int = 30):
-    if total <= 0:
-        return
+_W = 68  # visual width for horizontal rules
 
-    ratio = completed / total
-    filled = int(width * ratio)
-    bar = '#' * filled + '-' * (width - filled)
-    percent = ratio * 100
-    sys.stdout.write(f'\r{prefix} [{bar}] {percent:6.2f}% ({completed}/{total})')
-    sys.stdout.flush()
 
-    if completed >= total:
-        sys.stdout.write('\n')
-        sys.stdout.flush()
+def _hr(color: str = 'bright_black') -> str:
+    return click.style('  ' + '─' * _W, fg=color)
+
+
+def _print_banner():
+    click.echo()
+    click.echo(
+        click.style('  ✦  AFN', fg='bright_yellow', bold=True)
+        + click.style('  ·  Artificial Fusion Navigator', dim=True)
+    )
+    click.echo(_hr('yellow'))
+    click.echo()
+
+
+def _print_section(title: str):
+    click.echo()
+    click.echo(click.style(f'  {title}', fg='cyan', bold=True))
+    click.echo(click.style('  ' + '─' * 32, fg='cyan', dim=True))
+
+
+def _print_row(key: str, value: str, highlight: bool = False, key_width: int = 18):
+    styled_key = click.style(f'  {key:<{key_width}}', dim=True)
+    styled_val = click.style(value, fg='bright_white', bold=highlight)
+    click.echo(styled_key + styled_val)
 
 
 def _split_iterations(total_iterations: int, workers: int):
@@ -229,7 +146,7 @@ def _progress_chunks(total_iterations: int, workers: int):
     return chunks
 
 
-def solve_tsp(tsp_file: str, iterations: int, processes: int = 1, show_progress: bool = False, fusion_weights: dict | None = None):
+def solve_tsp(tsp_file: str, iterations: int, processes: int = 1, show_progress: bool = False, fusion_weights: dict | None = None, massive: bool | None = None):
     resolved_tsp_file = _resolve_tsp_file_path(tsp_file)
     reader = Reader(resolved_tsp_file)
     base_elements = reader.read_tsp()
@@ -241,31 +158,42 @@ def solve_tsp(tsp_file: str, iterations: int, processes: int = 1, show_progress:
     best_length = inf
     best_route = []
 
-    if processes == 1:
-        for step in range(iterations):
-            route, length = _run_batch(1, base_elements, distance_matrix, expected_nodes, fusion_weights=fusion_weights)
-            if route and length < best_length:
-                best_length = length
-                best_route = route
-            if show_progress:
-                _print_progress(step + 1, iterations)
-    else:
-        chunks = _progress_chunks(iterations, processes)
-        completed = 0
-        with ProcessPoolExecutor(max_workers=processes) as executor:
-            futures = {
-                executor.submit(_run_batch, chunk, base_elements, distance_matrix, expected_nodes, fusion_weights): chunk
-                for chunk in chunks
-            }
+    bar_args = dict(
+        length=iterations,
+        label=click.style('  Simulating', fg='cyan'),
+        bar_template='%(label)s  %(bar)s  %(info)s',
+        fill_char=click.style('█', fg='yellow'),
+        empty_char=click.style('░', fg='bright_black', dim=True),
+        color=True,
+        show_eta=True,
+        show_pos=True,
+    )
 
-            for future in as_completed(futures):
-                route, length = future.result()
+    if processes == 1:
+        with click.progressbar(**bar_args) as bar:
+            for _ in range(iterations):
+                route, length = _run_batch(1, base_elements, distance_matrix, expected_nodes, fusion_weights=fusion_weights, massive=massive)
                 if route and length < best_length:
                     best_length = length
                     best_route = route
                 if show_progress:
-                    completed += futures[future]
-                    _print_progress(completed, iterations)
+                    bar.update(1)
+    else:
+        chunks = _progress_chunks(iterations, processes)
+        with click.progressbar(**bar_args) as bar:
+            with ProcessPoolExecutor(max_workers=processes) as executor:
+                futures = {
+                    executor.submit(_run_batch, chunk, base_elements, distance_matrix, expected_nodes, fusion_weights, massive): chunk
+                    for chunk in chunks
+                }
+
+                for future in as_completed(futures):
+                    route, length = future.result()
+                    if route and length < best_length:
+                        best_length = length
+                        best_route = route
+                    if show_progress:
+                        bar.update(futures[future])
 
     if not best_route:
         raise RuntimeError('No route was generated by the simulation.')
@@ -276,7 +204,7 @@ def solve_tsp(tsp_file: str, iterations: int, processes: int = 1, show_progress:
     return best_route, int(verified_length), base_elements
 
 
-def solve_tsp_educative(tsp_file: str, fusion_weights: dict | None = None):
+def solve_tsp_educative(tsp_file: str, fusion_weights: dict | None = None, massive: bool = False):
     resolved_tsp_file = _resolve_tsp_file_path(tsp_file)
     reader = Reader(resolved_tsp_file)
     base_elements = reader.read_tsp()
@@ -285,7 +213,7 @@ def solve_tsp_educative(tsp_file: str, fusion_weights: dict | None = None):
         raise ValueError('TSP file does not contain coordinates.')
     expected_nodes = {str(int(item[0])) for item in base_elements}
 
-    star = Star(base_elements, distance_matrix, fusion_weights=fusion_weights)
+    star = Star(base_elements, distance_matrix, fusion_weights=fusion_weights, massive=massive)
     star.life()
 
     route = build_best_route(star.elements, distance_matrix)
@@ -301,77 +229,97 @@ def solve_tsp_educative(tsp_file: str, fusion_weights: dict | None = None):
 
 
 def _format_route(route: list[str], chunk_size: int = 8) -> str:
+    arrow = click.style(' → ', fg='bright_black')
     chunks = []
     for index in range(0, len(route), chunk_size):
-        chunks.append(' > '.join(route[index:index + chunk_size]))
+        nodes = [click.style(n, fg='bright_white') for n in route[index:index + chunk_size]]
+        chunks.append('  ' + arrow.join(nodes))
     return '\n'.join(chunks)
 
 
 def _print_result(tsp_file: str, iterations: int, processes: int, best_length: int, elapsed: float, best_route: list[str], plot_file: str | None = None):
-    separator = '=' * 72
-    print(separator)
-    print('AFN TSP RESULT')
-    print(separator)
-    print()
-    print('Run configuration')
-    print(f'  Input file : {tsp_file}')
-    print(f'  Iterations : {iterations}')
-    print(f'  Processes  : {processes}')
-    print()
-    print('Outcome')
-    print(f'  Best length : {best_length}')
-    print(f'  Elapsed     : {elapsed:.3f}s')
+    _print_banner()
+    _print_section('Configuration')
+    _print_row('Input file', tsp_file)
+    _print_row('Iterations', f'{iterations:,}')
+    _print_row('Processes', str(processes))
+    _print_section('Result')
+    _print_row('Tour length', f'{best_length:,}', highlight=True)
+    _print_row('Elapsed', f'{elapsed:.3f} s')
     if plot_file is not None:
-        print(f'  Plot file   : {plot_file}')
-    print()
-    print('Best route')
-    print(_format_route(best_route))
-    print()
-    print(separator)
+        _print_row('Plot', plot_file)
+    _print_section('Route')
+    click.echo(_format_route(best_route))
+    click.echo()
+    click.echo(_hr('yellow'))
+    click.echo()
 
 
 def _print_educative_result(tsp_file: str, best_length: int, elapsed: float, best_route: list[str], fusion_events_count: int, record_file: str | None = None):
-    separator = '=' * 72
-    print(separator)
-    print('AFN EDUCATIVE RESULT')
-    print(separator)
-    print()
-    print('Run configuration')
-    print(f'  Input file         : {tsp_file}')
-    print('  Iterations         : 1 (forced by educative mode)')
-    print('  Processes          : 1 (forced by educative mode)')
-    print()
-    print('Outcome')
-    print(f'  Best length        : {best_length}')
-    print(f'  Fusion events      : {fusion_events_count}')
-    print(f'  Elapsed            : {elapsed:.3f}s')
+    _print_banner()
+    _print_section('Configuration')
+    _print_row('Input file', tsp_file)
+    _print_row('Mode', 'educative  (1 iteration · 1 process)')
+    _print_section('Result')
+    _print_row('Tour length', f'{best_length:,}', highlight=True)
+    _print_row('Fusion events', str(fusion_events_count))
+    _print_row('Elapsed', f'{elapsed:.3f} s')
     if record_file:
-        print(f'  Animation recording: {record_file}')
-    print()
-    print('Best route')
-    print(_format_route(best_route))
-    print()
-    print(separator)
+        _print_row('Animation', record_file)
+    _print_section('Route')
+    click.echo(_format_route(best_route))
+    click.echo()
+    click.echo(_hr('yellow'))
+    click.echo()
 
 
-def main(argv=None):
-    args = parse_args(argv)
+@click.command()
+@click.version_option(__version__, prog_name='afn')
+@click.argument('tsp_file', default=DEFAULT_TSP_FILE, required=False)
+@click.option('-i', '--iterations', default=ITERATIONS, show_default=True, type=click.IntRange(min=1), help='Number of star simulation runs.')
+@click.option('-p', '--processes', default=1, show_default=True, type=click.IntRange(min=1), help='Number of worker processes for simulation batches.')
+@click.option('--plot', is_flag=True, help='Generate a PNG plot with the proposed TSP cycle.')
+@click.option('--plot-file', default='solution.png', show_default=True, help='Output image path when --plot is enabled.')
+@click.option('--progress', is_flag=True, help='Show a progress bar with completion percentage.')
+@click.option('--educative', is_flag=True, help='Run educational mode with a live fusion animation (forces one iteration and one process).')
+@click.option('--educative-delay', default=1.0, show_default=True, type=click.FloatRange(min=0, min_open=True), help='Seconds between educational animation frames.')
+@click.option('--educative-record', default=None, help='Optional animation output file (.gif or .mp4) in educational mode.')
+@click.option('--massive', is_flag=True, help='Force every star to use massive mode (shorter life, smaller neighbourhood, faster iterations).')
+@click.option('--fusion-score-weight', default=None, type=float, help='Weight for the score term in the fusion probability formula (default: 0.50).')
+@click.option('--fusion-distance-weight', default=None, type=float, help='Weight for the distance term in the fusion probability formula (default: 0.20).')
+@click.option('--fusion-barrier-weight', default=None, type=float, help='Weight for the barrier term in the fusion probability formula (default: 0.20).')
+@click.option('--fusion-gain-weight', default=None, type=float, help='Weight for the route-gain term in the fusion probability formula (default: 0.10).')
+def main(
+    tsp_file, iterations, processes, plot, plot_file, progress,
+    educative, educative_delay, educative_record, massive,
+    fusion_score_weight, fusion_distance_weight, fusion_barrier_weight, fusion_gain_weight,
+):
+    """Solve a TSP instance with the AFN star-fusion heuristic."""
+    if educative_record and not educative:
+        raise click.UsageError('--educative-record requires --educative')
+
+    fusion_weights = _build_fusion_weights(
+        fusion_score_weight, fusion_distance_weight,
+        fusion_barrier_weight, fusion_gain_weight,
+    )
+
     start_time = perf_counter()
 
-    if args.educative:
+    if educative:
         best_route, best_length, base_elements, fusion_events = solve_tsp_educative(
-            args.tsp_file,
-            fusion_weights=_build_fusion_weights(args),
+            tsp_file,
+            fusion_weights=fusion_weights,
+            massive=massive,
         )
         recorded_file = animate_fusion_process(
             base_elements,
             fusion_events,
-            delay_seconds=args.educative_delay,
-            record_file=args.educative_record,
+            delay_seconds=educative_delay,
+            record_file=educative_record,
         )
         elapsed = perf_counter() - start_time
         _print_educative_result(
-            args.tsp_file,
+            tsp_file,
             best_length,
             elapsed,
             best_route,
@@ -381,19 +329,20 @@ def main(argv=None):
         return
 
     best_route, best_length, base_elements = solve_tsp(
-        args.tsp_file,
-        args.iterations,
-        args.processes,
-        show_progress=args.progress,
-        fusion_weights=_build_fusion_weights(args),
+        tsp_file,
+        iterations,
+        processes,
+        show_progress=progress,
+        fusion_weights=fusion_weights,
+        massive=True if massive else None,
     )
     elapsed = perf_counter() - start_time
     plot_path = None
-    if args.plot:
-        plot_tsp_solution(base_elements, best_route, args.plot_file, close_loop=True)
-        plot_path = args.plot_file
+    if plot:
+        plot_tsp_solution(base_elements, best_route, plot_file, close_loop=True)
+        plot_path = plot_file
 
-    _print_result(args.tsp_file, args.iterations, args.processes, best_length, elapsed, best_route, plot_path)
+    _print_result(tsp_file, iterations, processes, best_length, elapsed, best_route, plot_path)
 
 
 if __name__ == "__main__":
